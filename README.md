@@ -145,10 +145,10 @@ RaiPod/
 │   │   ├── utils.ts
 │   │   └── storage.ts
 │   └── assets/              # 静态资源
-│       ├── icon-16.svg
-│       ├── icon-32.svg
-│       ├── icon-48.svg
-│       └── icon-128.svg
+│       ├── icon-16.png
+│       ├── icon-32.png
+│       ├── icon-48.png
+│       └── icon-128.png
 ├── dist/                    # 构建输出
 ├── webpack.config.js        # Webpack配置
 ├── tsconfig.json           # TypeScript配置

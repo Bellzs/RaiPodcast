@@ -24,15 +24,15 @@
     "default_popup": "popup/popup.html",
     "default_title": "RaiPod",
     "default_icon": {
-      "16": "assets/icon-16.svg",
-      "48": "assets/icon-48.svg",
-      "128": "assets/icon-128.svg"
+      "16": "assets/icon-16.png",
+      "48": "assets/icon-48.png",
+      "128": "assets/icon-128.png"
     }
   },
   "options_page": "options/options.html",
   "icons": {
-    "16": "assets/icon-16.svg",
-    "48": "assets/icon-48.svg",
-    "128": "assets/icon-128.svg"
+    "16": "assets/icon-16.png",
+    "48": "assets/icon-48.png",
+    "128": "assets/icon-128.png"
   }
 }
