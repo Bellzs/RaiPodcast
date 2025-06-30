@@ -147,7 +147,7 @@ const Popup: React.FC = () => {
         onClick={handleGeneratePodcast}
         disabled={!state.pageContent || state.generating}
       >
-        {state.generating ? '正在生成...' : '🎙️ 生成播客'}
+        {state.generating ? '正在生成...' : '生成播客'}
       </button>
     </div>
   );
@@ -170,7 +170,7 @@ const Popup: React.FC = () => {
     <div className="popup-container">
       {/* 头部 */}
       <div className="popup-header">
-        <span className="popup-logo">🎙️</span>
+        <img src="../assets/icon-128.png" alt="RaiPod Logo" className="popup-logo" />
         <h1 className="popup-title">RaiPod</h1>
       </div>
 
@@ -196,7 +196,7 @@ const Popup: React.FC = () => {
           openOptionsPage();
         }}
       >
-        ⚙️ 打开设置
+设置
       </a>
     </div>
   );

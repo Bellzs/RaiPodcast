@@ -35,9 +35,10 @@ body {
 }
 
 .popup-logo {
-  width: 24px;
-  height: 24px;
-  margin-right: 8px;
+  width: 32px;
+  height: 32px;
+  margin-right: 12px;
+  object-fit: contain;
 }
 
 .popup-title {

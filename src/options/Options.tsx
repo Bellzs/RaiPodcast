@@ -287,7 +287,7 @@ const Options: React.FC = () => {
       {/* 头部 */}
       <div className="options-header">
         <h1 className="options-title">
-          <span className="options-logo">🎙️</span>
+          <img src="../assets/icon-128.png" alt="RaiPod Logo" className="options-logo" />
           RaiPod 设置
         </h1>
         <p className="options-description">
@@ -308,7 +308,7 @@ const Options: React.FC = () => {
             onClick={saveConfigs}
             disabled={state.saving}
           >
-            {state.saving ? '保存中...' : '💾 保存配置'}
+            {state.saving ? '保存中...' : '保存配置'}
           </button>
           
           <button
@@ -316,7 +316,7 @@ const Options: React.FC = () => {
             onClick={loadConfigs}
             disabled={state.saving}
           >
-            🔄 重新加载
+            重新加载
           </button>
         </div>
       </div>

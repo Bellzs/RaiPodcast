@@ -1,7 +1,7 @@
 # RaiPod - AI播客生成器
 
 <div align="center">
-  <img src="src/assets/icon-128.svg" alt="RaiPod Logo" width="128" height="128">
+  <img src="src/assets/icon-128.png" alt="RaiPod Logo" width="128" height="128">
   
   <h3>将任何网页内容转换为AI播客对话</h3>
   
