@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { PageContent } from '@/shared/types';
 import { MESSAGE_TYPES } from '@/shared/constants';
+import { StorageManager } from '@/shared/storage';
 
 interface PopupState {
   pageContent: PageContent | null;
@@ -69,14 +70,27 @@ const Popup: React.FC = () => {
     try {
       setState(prev => ({ ...prev, generating: true, error: null }));
 
+      // 获取当前配置
+      const [agentConfig, ttsConfigs] = await Promise.all([
+        StorageManager.getCurrentAgentConfig(),
+        StorageManager.getCurrentTTSConfigs()
+      ]);
+      
+      if (!agentConfig) {
+        throw new Error('请先配置AI模型');
+      }
+      
+      if (!ttsConfigs.voiceA || !ttsConfigs.voiceB) {
+        throw new Error('请先配置角色A和角色B的语音');
+      }
+      
       // 发送生成播客请求
       const response = await chrome.runtime.sendMessage({
         type: MESSAGE_TYPES.GENERATE_PODCAST,
         data: {
           content: state.pageContent,
-          // 这里将来会从配置中获取
-          agentConfig: null,
-          ttsConfigs: null
+          agentConfig,
+          ttsConfigs
         }
       });
 

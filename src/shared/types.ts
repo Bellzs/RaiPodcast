@@ -13,14 +13,18 @@ export interface AgentConfig {
   apiKey: string;
   model: string;
   systemPrompt: string;
-  temperature: number;
-  maxTokens: number;
 }
 
 export interface TTSConfig {
   id: string;
   name: string;
   curlCommand: string;
+}
+
+export interface AppSettings {
+  defaultAgentId: string;
+  voiceAConfigId: string;
+  voiceBConfigId: string;
 }
 
 export interface DialogueItem {

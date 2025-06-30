@@ -1,10 +1,11 @@
 # RaiPod - AI播客生成器
 
 <div align="center">
-  <img src="src/assets/icon-128.png" alt="RaiPod Logo" width="128" height="128">
-  
+  <img src="src/assets/icon-800.png" alt="RaiPod Logo" width="128" height="128">
+
+
   <h3>将任何网页内容转换为AI播客对话</h3>
-  
+
   [![Chrome Extension](https://img.shields.io/badge/Chrome-Extension-4285F4?style=flat-square&logo=google-chrome&logoColor=white)]()
   [![TypeScript](https://img.shields.io/badge/TypeScript-007ACC?style=flat-square&logo=typescript&logoColor=white)]()
   [![React](https://img.shields.io/badge/React-20232A?style=flat-square&logo=react&logoColor=61DAFB)]()
@@ -479,7 +480,8 @@ npm run build
   "apiUrl": "https://api.openai.com/v1/chat/completions",
   "apiKey": "sk-your-api-key",
   "model": "gpt-4",
-  "systemPrompt": "你是两个专业的播客主持人，需要将给定的文章内容转换为生动有趣的双人对话。角色A是主持人，角色B是嘉宾。对话要自然流畅，有问有答，能够帮助听众更好地理解文章内容。"
+  "systemPrompt": "你是播客栏目的专家，负责编写播客的对话内容，需要将给定的文章内容转换为生动有趣的双人对话。角色A是主持人，角色B是嘉宾。对话要自然流畅，有问有答，能够帮助听众更好地理解文章内容。
+请直接返回Json数组格式，数组中是两个角色依次的对话内容，示例：[{{\"user\":\"A\",\"content\":\"哈喽，各位听众朋友们，大家好...\"}},{{\"user\":\"B\",\"content\":\"是的，这个话题非常有意思...\"}},{{\"user\":\"A\",\"content\":\"你怎么看待这个问题呢...\"}}]"
 }
 ```
 
