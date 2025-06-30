@@ -23,8 +23,8 @@ export const DEFAULT_AGENT_CONFIG: AgentConfig = {
   name: '默认AI模型',
   apiUrl: '',
   apiKey: '',
-  model: 'gpt-3.5-turbo',
-  systemPrompt: '你是播客栏目的专家，负责编写播客的对话内容，需要将给定的文章内容转换为生动有趣的双人对话。角色A是主持人，角色B是嘉宾。对话要自然流畅，有问有答，能够帮助听众更好地理解文章内容。请直接返回Json数组格式，数组中是两个角色依次的对话内容，示例：[{"user":"A","content":"哈喽，各位听众朋友们，大家好..."},{"user":"B","content":"是的，这个话题非常有意思..."},{"user":"A","content":"你怎么看待这个问题呢..."}]'
+  model: '',
+  systemPrompt: '你是播客栏目的专家，负责编写播客的对话内容，需要将用户提交的文章内容转换为生动有趣的双人对话。角色A是主持人，角色B是嘉宾。对话要自然流畅，有问有答，能够帮助听众更好地理解文章内容。请直接返回Json数组格式，数组中是两个角色依次的对话内容，示例：[{"user":"A","content":"哈喽，各位听众朋友们，大家好..."},{"user":"B","content":"是的，这个话题非常有意思..."},{"user":"A","content":"你怎么看待这个问题呢..."}]'
 };
 
 export const DEFAULT_TTS_CONFIG = {

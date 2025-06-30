@@ -5,6 +5,8 @@ import { generateId, cleanText } from '@/shared/utils';
  * 内容脚本 - 负责提取网页内容
  */
 class ContentScript {
+  private isInitialized = false;
+
   constructor() {
     this.init();
   }
@@ -13,9 +15,22 @@ class ContentScript {
    * 初始化内容脚本
    */
   private init(): void {
+    if (this.isInitialized) {
+      console.log('RaiPod Content Script 已经初始化过了');
+      return;
+    }
+
     // 监听来自background的消息
     chrome.runtime.onMessage.addListener(this.handleMessage.bind(this));
-    console.log('RaiPod Content Script 已加载');
+    this.isInitialized = true;
+    console.log('RaiPod Content Script 已加载并初始化');
+    
+    // 向background发送准备就绪信号
+    if (chrome.runtime?.id) {
+      chrome.runtime.sendMessage({ type: 'CONTENT_SCRIPT_READY' }).catch(() => {
+        // 忽略错误，可能是background还未准备好
+      });
+    }
   }
 
   /**
@@ -149,4 +164,12 @@ class ContentScript {
 }
 
 // 启动内容脚本
-new ContentScript();
+if (!(window as any).RaiPodContentScript) {
+  (window as any).RaiPodContentScript = new ContentScript();
+  console.log('RaiPod Content Script 实例已创建');
+} else {
+  console.log('RaiPod Content Script 实例已存在');
+}
+
+// 添加全局标识符
+(window as any).RaiPodContentScriptLoaded = true;

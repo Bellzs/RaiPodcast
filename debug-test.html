@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RaiPod 扩展调试测试页面</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        .debug-info {
+            background: #f0f0f0;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 20px 0;
+        }
+        .error {
+            background: #ffe6e6;
+            border-left: 4px solid #ff0000;
+        }
+        .success {
+            background: #e6ffe6;
+            border-left: 4px solid #00ff00;
+        }
+        .warning {
+            background: #fff3cd;
+            border-left: 4px solid #ffc107;
+        }
+        button {
+            background: #007cba;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background: #005a87;
+        }
+        .step {
+            background: #e7f3ff;
+            border-left: 4px solid #007cba;
+            padding: 10px;
+            margin: 10px 0;
+        }
+        code {
+            background: #f4f4f4;
+            padding: 2px 4px;
+            border-radius: 3px;
+            font-family: 'Courier New', monospace;
+        }
+    </style>
+</head>
+<body>
+    <h1>RaiPod 扩展调试测试页面</h1>
+    
+    <div class="debug-info error">
+        <h3>🚨 当前问题：Service Worker连接错误</h3>
+        <p><strong>错误信息：</strong>"Could not establish connection. Receiving end does not exist."</p>
+        <p><strong>根本原因：</strong>Content Script未正确注入到页面中，导致Background Service Worker无法与页面通信。</p>
+    </div>
+
+    <div class="debug-info warning">
+        <h3>⚠️ 解决方案概述</h3>
+        <p>我已经实施了以下修复措施：</p>
+        <ul>
+            <li>在manifest.json中添加了<code>run_at: "document_end"</code>配置</li>
+            <li>在Service Worker中添加了Content Script检测和自动注入机制</li>
+            <li>增强了错误处理和日志记录</li>
+        </ul>
+    </div>
+
+    <div class="step">
+        <h3>📋 详细调试步骤</h3>
+        
+        <h4>步骤1：重新加载扩展</h4>
+        <ol>
+            <li>打开Chrome扩展管理页面：<code>chrome://extensions/</code></li>
+            <li>找到RaiPod扩展</li>
+            <li>点击"重新加载"按钮（🔄图标）</li>
+            <li>确认扩展状态为"已启用"</li>
+        </ol>
+
+        <h4>步骤2：检查Service Worker状态</h4>
+        <ol>
+            <li>在扩展管理页面，点击RaiPod扩展的"详细信息"</li>
+            <li>点击"检查视图：service worker"</li>
+            <li>查看Console中是否有错误信息</li>
+            <li>如果Service Worker显示"非活动"，点击一下扩展图标激活它</li>
+        </ol>
+
+        <h4>步骤3：测试扩展功能</h4>
+        <ol>
+            <li>在当前页面打开Chrome开发者工具（F12）</li>
+            <li>切换到Console标签页</li>
+            <li>点击扩展图标打开popup</li>
+            <li>观察Console中的日志信息</li>
+        </ol>
+    </div>
+
+    <div class="debug-info">
+        <h3>🔧 手动测试工具</h3>
+        <button onclick="testExtensionAPI()">测试扩展API</button>
+        <button onclick="testContentScript()">测试Content Script</button>
+        <button onclick="testConsoleLog()">输出调试信息</button>
+        <button onclick="clearResults()">清除结果</button>
+        <div id="test-results"></div>
+    </div>
+
+    <h2>测试内容：人工智能与播客技术</h2>
+    <p>人工智能（AI）正在革命性地改变我们创建和消费内容的方式。在播客领域，AI技术使得自动化内容生成、语音合成和个性化推荐成为可能。</p>
+    
+    <h3>AI播客生成的优势</h3>
+    <ul>
+        <li><strong>效率提升：</strong>自动化内容创建过程，节省大量时间和人力成本</li>
+        <li><strong>个性化体验：</strong>根据用户偏好定制内容和播放体验</li>
+        <li><strong>多语言支持：</strong>轻松生成多种语言版本的播客内容</li>
+        <li><strong>一致性保证：</strong>确保内容质量和风格的统一性</li>
+    </ul>
+
+    <h3>技术实现架构</h3>
+    <p>现代AI播客生成系统通常包含以下核心组件：</p>
+    <ol>
+        <li><strong>内容提取模块：</strong>从网页或文档中智能提取关键信息</li>
+        <li><strong>脚本生成引擎：</strong>使用大语言模型创建对话式播客脚本</li>
+        <li><strong>语音合成系统：</strong>将文本转换为自然流畅的语音</li>
+        <li><strong>后期处理工具：</strong>添加背景音乐、音效和格式优化</li>
+    </ol>
+
+    <div class="debug-info">
+        <h2>🔧 已实施的修复措施</h2>
+
+        <h3>1. Content Script 注入优化</h3>
+        <ul>
+            <li>✅ 在 <code>manifest.json</code> 中添加了 <code>"run_at": "document_end"</code> 配置</li>
+            <li>✅ 设置 <code>"all_frames": false</code> 确保只在主框架运行</li>
+            <li>✅ 保持 <code>"matches": ["&lt;all_urls&gt;"]</code> 支持所有页面</li>
+            <li>✅ <strong>新增</strong>: 添加全局标识符 <code>RaiPodContentScriptLoaded</code> 用于检测</li>
+            <li>✅ <strong>新增</strong>: 防止重复实例化的保护机制</li>
+        </ul>
+
+        <h3>2. Service Worker 通信机制增强</h3>
+        <ul>
+            <li>✅ 添加了智能检测 Content Script 是否已注入的逻辑</li>
+            <li>✅ 实现自动注入 Content Script 的备用机制</li>
+            <li>✅ 优化了错误处理和用户反馈</li>
+            <li>✅ 增加了适当的等待时间确保初始化完成</li>
+            <li>✅ <strong>新增</strong>: 使用全局标识符进行更可靠的检测</li>
+            <li>✅ <strong>新增</strong>: 添加 <code>CONTENT_SCRIPT_READY</code> 消息处理</li>
+        </ul>
+
+        <h3>3. 调试工具完善</h3>
+        <ul>
+            <li>✅ 提供详细的调试步骤和检查清单</li>
+            <li>✅ 添加手动测试工具</li>
+            <li>✅ 包含常见问题的解决方案</li>
+            <li>✅ <strong>新增</strong>: 更详细的错误诊断信息</li>
+        </ul>
+    </div>
+
+    <div class="debug-info success">
+        <h3>✅ 预期修复效果</h3>
+        <p>修复后，扩展应该能够：</p>
+        <ul>
+            <li>正确检测和注入Content Script</li>
+            <li>成功建立Service Worker与页面的通信</li>
+            <li>提取当前页面的标题和内容</li>
+            <li>在popup中显示页面信息</li>
+            <li>提供生成播客的功能选项</li>
+        </ul>
+        
+        <h3>✅ 预期效果</h3>
+        <ul>
+            <li>✅ 消除 "Could not establish connection" 错误</li>
+            <li>✅ Content Script 在所有支持的页面正确注入</li>
+            <li>✅ Service Worker 与 Content Script 通信稳定</li>
+            <li>✅ <strong>新增</strong>: 修复 Popup "无法连接到后台服务" 错误</li>
+            <li>✅ <strong>新增</strong>: 优化异步消息处理机制</li>
+            <li>✅ 提供清晰的错误反馈和调试信息</li>
+        </ul>
+    </div>
+
+    <script>
+        function testExtensionAPI() {
+            const results = document.getElementById('test-results');
+            results.innerHTML = '<div class="debug-info">正在测试扩展API...</div>';
+            
+            if (window.chrome && window.chrome.runtime) {
+                results.innerHTML = '<div class="debug-info success">✓ Chrome扩展API可用</div>';
+                
+                // 测试与background的通信
+                try {
+                    chrome.runtime.sendMessage({type: 'TEST_CONNECTION'}, (response) => {
+                        if (chrome.runtime.lastError) {
+                            results.innerHTML += '<div class="debug-info error">✗ 与Background通信失败: ' + chrome.runtime.lastError.message + '</div>';
+                        } else {
+                            results.innerHTML += '<div class="debug-info success">✓ 与Background通信正常</div>';
+                        }
+                    });
+                } catch (error) {
+                    results.innerHTML += '<div class="debug-info error">✗ 发送消息异常: ' + error.message + '</div>';
+                }
+            } else {
+                results.innerHTML = '<div class="debug-info error">✗ Chrome扩展API不可用</div>';
+            }
+        }
+        
+        function testContentScript() {
+            const results = document.getElementById('test-results');
+            results.innerHTML = '<div class="debug-info">正在检查Content Script状态...</div>';
+            
+            // 检查是否有RaiPod相关的全局变量或标识
+            const hasContentScript = document.querySelector('script[src*="content-script"]') || 
+                                    window.RaiPodContentScript || 
+                                    (console.log('RaiPod Content Script 已加载') && false);
+            
+            if (hasContentScript) {
+                results.innerHTML = '<div class="debug-info success">✓ Content Script可能已加载</div>';
+            } else {
+                results.innerHTML = '<div class="debug-info warning">⚠ Content Script状态未知，请查看Console日志</div>';
+            }
+        }
+        
+        function testConsoleLog() {
+            console.log('=== RaiPod调试信息 ===');
+            console.log('页面URL:', window.location.href);
+            console.log('页面标题:', document.title);
+            console.log('Chrome扩展API:', !!window.chrome?.runtime);
+            console.log('当前时间:', new Date().toLocaleString());
+            console.log('用户代理:', navigator.userAgent);
+            
+            const results = document.getElementById('test-results');
+            results.innerHTML = '<div class="debug-info success">✓ 调试信息已输出到Console，请查看开发者工具</div>';
+        }
+        
+        function clearResults() {
+            document.getElementById('test-results').innerHTML = '';
+        }
+        
+        // 页面加载完成后的初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('RaiPod调试页面已加载');
+            console.log('请按照页面上的步骤进行调试');
+            
+            // 自动检测扩展状态
+            setTimeout(() => {
+                if (window.chrome && window.chrome.runtime) {
+                    console.log('✓ Chrome扩展环境检测正常');
+                } else {
+                    console.warn('⚠ Chrome扩展环境检测异常');
+                }
+            }, 1000);
+        });
+    </script>
+</body>
+</html>

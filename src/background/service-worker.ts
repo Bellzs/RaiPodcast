@@ -49,31 +49,39 @@ class ServiceWorker {
   /**
    * 处理消息
    */
-  private async handleMessage(
+  private handleMessage(
     message: ChromeMessage,
     sender: chrome.runtime.MessageSender,
     sendResponse: (response?: any) => void
-  ): Promise<boolean> {
-    try {
-      console.log('收到消息:', message.type, message.data);
-      
-      switch (message.type) {
-        case MESSAGE_TYPES.EXTRACT_CONTENT:
-          await this.handleExtractContent(message as ExtractContentMessage, sender, sendResponse);
-          break;
-          
-        case MESSAGE_TYPES.GENERATE_PODCAST:
-          await this.handleGeneratePodcast(message as GeneratePodcastMessage, sender, sendResponse);
-          break;
-          
-        default:
-          console.warn('未知消息类型:', message.type);
-          sendResponse({ success: false, error: '未知消息类型' });
+  ): boolean {
+    console.log('收到消息:', message.type, message.data);
+    
+    // 异步处理消息
+    (async () => {
+      try {
+        switch (message.type) {
+          case MESSAGE_TYPES.EXTRACT_CONTENT:
+            await this.handleExtractContent(message as ExtractContentMessage, sender, sendResponse);
+            break;
+            
+          case MESSAGE_TYPES.GENERATE_PODCAST:
+            await this.handleGeneratePodcast(message as GeneratePodcastMessage, sender, sendResponse);
+            break;
+            
+          case 'CONTENT_SCRIPT_READY':
+            console.log('Content Script 已准备就绪, tabId:', sender.tab?.id);
+            sendResponse({ success: true, message: 'Background收到准备就绪信号' });
+            break;
+            
+          default:
+            console.warn('未知消息类型:', message.type);
+            sendResponse({ success: false, error: '未知消息类型' });
+        }
+      } catch (error) {
+        console.error('处理消息时出错:', error as Error);
+        sendResponse({ success: false, error: (error as Error).message });
       }
-    } catch (error) {
-      console.error('处理消息时出错:', error as Error);
-      sendResponse({ success: false, error: (error as Error).message });
-    }
+    })();
     
     return true; // 保持消息通道开放
   }
@@ -87,15 +95,60 @@ class ServiceWorker {
     sendResponse: (response?: any) => void
   ): Promise<void> {
     try {
-      if (!sender.tab?.id) {
+      const tabId = message.data?.tabId || sender.tab?.id;
+      console.log('处理内容提取请求, tabId:', tabId);
+      
+      if (!tabId) {
         throw new Error('无法获取标签页信息');
       }
 
-      // 向content script发送提取内容的请求
-      const response = await chrome.tabs.sendMessage(sender.tab.id, {
-        type: 'EXTRACT_PAGE_CONTENT'
-      });
+      // 检查标签页是否存在
+      const tab = await chrome.tabs.get(tabId).catch(() => null);
+      if (!tab) {
+        throw new Error('标签页不存在或已关闭');
+      }
+
+      // 检查content script是否已加载
+      let contentScriptLoaded = false;
+      try {
+        const result = await chrome.scripting.executeScript({
+          target: { tabId },
+          func: () => (window as any).RaiPodContentScriptLoaded === true
+        });
+        contentScriptLoaded = result[0]?.result === true;
+        console.log('Content script加载状态:', contentScriptLoaded);
+      } catch (checkError: any) {
+         console.log('无法检查content script状态:', checkError.message);
+      }
+
+      // 如果未加载，先注入content script
+      if (!contentScriptLoaded) {
+        console.log('注入content script...');
+        try {
+          await chrome.scripting.executeScript({
+            target: { tabId },
+            files: ['content/content-script.js']
+          });
+          // 等待初始化
+          await new Promise(resolve => setTimeout(resolve, 800));
+        } catch (injectError) {
+          console.error('注入content script失败:', injectError);
+          throw new Error('此页面不支持内容提取功能');
+        }
+      }
+
+      // 发送消息提取内容
+      let response;
+      try {
+        response = await chrome.tabs.sendMessage(tabId, {
+          type: 'EXTRACT_PAGE_CONTENT'
+        });
+      } catch (messageError) {
+        console.error('发送消息失败:', messageError);
+        throw new Error('无法与页面内容脚本通信，请刷新页面后重试');
+      }
       
+      console.log('内容提取成功:', response);
       sendResponse({ success: true, data: response });
     } catch (error) {
       console.error('提取内容失败:', error as Error);

@@ -58,6 +58,9 @@ export interface ChromeMessage {
 
 export interface ExtractContentMessage extends ChromeMessage {
   type: 'EXTRACT_CONTENT';
+  data?: {
+    tabId?: number;
+  };
 }
 
 export interface GeneratePodcastMessage extends ChromeMessage {

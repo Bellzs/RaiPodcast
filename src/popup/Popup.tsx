@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { PageContent } from '@/shared/types';
 import { MESSAGE_TYPES } from '@/shared/constants';
 import { StorageManager } from '@/shared/storage';
+import './popup.css';
 
 interface PopupState {
   pageContent: PageContent | null;
@@ -17,10 +18,16 @@ const Popup: React.FC = () => {
     error: null,
     generating: false
   });
+  
+  // 防止重复初始化的标志
+  const [isInitialized, setIsInitialized] = useState(false);
 
   useEffect(() => {
-    initializePopup();
-  }, []);
+    if (!isInitialized) {
+      setIsInitialized(true);
+      initializePopup();
+    }
+  }, [isInitialized]);
 
   /**
    * 初始化弹窗
@@ -37,8 +44,13 @@ const Popup: React.FC = () => {
 
       // 请求提取页面内容
       const response = await chrome.runtime.sendMessage({
-        type: MESSAGE_TYPES.EXTRACT_CONTENT
+        type: MESSAGE_TYPES.EXTRACT_CONTENT,
+        data: { tabId: tab.id }
       });
+
+      if (!response) {
+        throw new Error('无法连接到后台服务');
+      }
 
       if (response.success) {
         setState(prev => ({
@@ -93,6 +105,10 @@ const Popup: React.FC = () => {
           ttsConfigs
         }
       });
+
+      if (!response) {
+        throw new Error('无法连接到后台服务');
+      }
 
       if (response.success) {
         console.log('播客生成成功:', response.data);
