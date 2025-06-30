@@ -1,13 +1,58 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128">
+<svg width="128" height="128" viewBox="0 0 128 128" xmlns="http://www.w3.org/2000/svg">
   <defs>
-    <linearGradient id="gradient" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#1890ff" />
-      <stop offset="100%" stop-color="#722ed1" />
+    <linearGradient id="gradient128" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#E91E63" />
+      <stop offset="30%" stop-color="#F44336" />
+      <stop offset="70%" stop-color="#FF5722" />
+      <stop offset="100%" stop-color="#FF9800" />
     </linearGradient>
+    <radialGradient id="eyeGradient" cx="50%" cy="30%" r="70%">
+      <stop offset="0%" stop-color="white" />
+      <stop offset="100%" stop-color="#f0f0f0" />
+    </radialGradient>
   </defs>
-  <rect width="128" height="128" rx="24" fill="#ffffff" />
-  <circle cx="64" cy="64" r="48" fill="url(#gradient)" />
-  <path d="M64 40c-6.627 0-12 5.373-12 12v24c0 6.627 5.373 12 12 12s12-5.373 12-12V52c0-6.627-5.373-12-12-12zm0 8c2.21 0 4 1.79 4 4v24c0 2.21-1.79 4-4 4s-4-1.79-4-4V52c0-2.21 1.79-4 4-4z" fill="white" />
-  <path d="M88 64c0-2.21-1.79-4-4-4s-4 1.79-4 4c0 8.837-7.163 16-16 16s-16-7.163-16-16c0-2.21-1.79-4-4-4s-4 1.79-4 4c0 12.15 9.84 22 22 22h4c12.15 0 22-9.85 22-22z" fill="white" />
-  <circle cx="64" cy="28" r="4" fill="white" />
+  
+  <!-- 背景圆形 -->
+  <circle cx="64" cy="64" r="60" fill="white" opacity="0.1" />
+  
+  <!-- 兔子身体 -->
+  <ellipse cx="64" cy="88" rx="32" ry="24" fill="url(#gradient128)" />
+  
+  <!-- 兔子头部 -->
+  <circle cx="64" cy="56" r="24" fill="url(#gradient128)" />
+  
+  <!-- 兔子耳朵外层 -->
+  <ellipse cx="52" cy="32" rx="8" ry="20" fill="url(#gradient128)" />
+  <ellipse cx="76" cy="32" rx="8" ry="20" fill="url(#gradient128)" />
+  
+  <!-- 兔子耳朵内层 -->
+  <ellipse cx="52" cy="34" rx="4" ry="12" fill="white" opacity="0.4" />
+  <ellipse cx="76" cy="34" rx="4" ry="12" fill="white" opacity="0.4" />
+  
+  <!-- 兔子眼睛 -->
+  <circle cx="64" cy="52" r="4" fill="url(#eyeGradient)" />
+  <circle cx="64" cy="51" r="1.5" fill="#333" />
+  
+  <!-- 兔子鼻子 -->
+  <ellipse cx="64" cy="58" rx="2" ry="1.2" fill="white" opacity="0.9" />
+  
+  <!-- 兔子嘴巴 -->
+  <path d="M 64 60 Q 62 62 60 61" fill="none" stroke="white" stroke-width="1" opacity="0.7" />
+  <path d="M 64 60 Q 66 62 68 61" fill="none" stroke="white" stroke-width="1" opacity="0.7" />
+  
+  <!-- 播客波纹效果 -->
+  <circle cx="64" cy="88" r="12" fill="none" stroke="white" stroke-width="4" opacity="0.9" />
+  <circle cx="64" cy="88" r="20" fill="none" stroke="white" stroke-width="3" opacity="0.7" />
+  <circle cx="64" cy="88" r="28" fill="none" stroke="white" stroke-width="2" opacity="0.5" />
+  <circle cx="64" cy="88" r="36" fill="none" stroke="white" stroke-width="1" opacity="0.3" />
+  
+  <!-- 播客中心点 -->
+  <circle cx="64" cy="88" r="6" fill="white" opacity="0.95" />
+  <circle cx="64" cy="88" r="3" fill="url(#gradient128)" />
+  
+  <!-- 装饰性光点 -->
+  <circle cx="45" cy="45" r="2" fill="white" opacity="0.6" />
+  <circle cx="83" cy="45" r="2" fill="white" opacity="0.6" />
+  <circle cx="35" cy="75" r="1.5" fill="white" opacity="0.4" />
+  <circle cx="93" cy="75" r="1.5" fill="white" opacity="0.4" />
 </svg>
