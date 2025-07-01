@@ -235,8 +235,9 @@ class AudioSessionManager {
           const errorMessage = errorResult.error || errorResult.message || errorResult.detail || JSON.stringify(errorResult);
           throw new Error(`TTS服务返回错误: ${errorMessage}`);
         } catch (jsonError) {
-          const textResult = await response.text();
-          throw new Error(`TTS服务返回错误: ${textResult}`);
+          // 如果JSON解析失败，说明响应体可能不是有效的JSON
+          // 此时response的body已经被消费，无法再次读取
+          throw new Error(`TTS服务返回无效的JSON响应`);
         }
       } else if (contentType.includes('audio/') || contentType.includes('application/octet-stream')) {
         // 直接返回音频数据的情况，转换为base64格式
@@ -909,8 +910,9 @@ class ServiceWorker {
           const errorMessage = errorResult.error || errorResult.message || errorResult.detail || JSON.stringify(errorResult);
           throw new Error(`TTS服务返回错误: ${errorMessage}`);
         } catch (jsonError) {
-          const textResult = await response.text();
-          throw new Error(`TTS服务返回错误: ${textResult}`);
+          // 如果JSON解析失败，说明响应体可能不是有效的JSON
+          // 此时response的body已经被消费，无法再次读取
+          throw new Error(`TTS服务返回无效的JSON响应`);
         }
       } else if (contentType.includes('audio/') || contentType.includes('application/octet-stream')) {
         // 直接返回音频数据的情况，转换为base64格式

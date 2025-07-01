@@ -17,6 +17,7 @@ interface PopupState {
   pageContent: PageContent | null;
   loading: boolean;
   error: string | null;
+  ttsError: string | null; // 专门用于TTS错误
   generating: boolean;
   currentAgent: AgentConfig | null;
   currentVoices: { voiceA: TTSConfig | null; voiceB: TTSConfig | null };
@@ -28,6 +29,7 @@ const Popup: React.FC = () => {
     pageContent: null,
     loading: true,
     error: null,
+    ttsError: null,
     generating: false,
     currentAgent: null,
     currentVoices: { voiceA: null, voiceB: null },
@@ -86,10 +88,10 @@ const Popup: React.FC = () => {
         const { sessionId, index, error } = message.data;
         console.log('处理TTS_ERROR消息:', { sessionId, index, error });
         
-        // 显示TTS错误信息
+        // 显示TTS错误信息，使用专门的ttsError字段
         setState(prev => ({
           ...prev,
-          error: `第${index + 1}条音频生成失败: ${error}`
+          ttsError: `第${index + 1}条音频生成失败: ${error}`
         }));
       }
     };
@@ -107,7 +109,7 @@ const Popup: React.FC = () => {
    */
   const initializePopup = async (): Promise<void> => {
     try {
-      setState(prev => ({ ...prev, loading: true, error: null }));
+      setState(prev => ({ ...prev, loading: true, error: null, ttsError: null }));
       
       // 获取当前标签页信息
       const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
@@ -177,7 +179,7 @@ const Popup: React.FC = () => {
     }
 
     try {
-      setState(prev => ({ ...prev, generating: true, error: null }));
+      setState(prev => ({ ...prev, generating: true, error: null, ttsError: null }));
 
       // 获取当前配置
       const [agentConfig, ttsConfigs] = await Promise.all([
@@ -525,9 +527,25 @@ const Popup: React.FC = () => {
    * 渲染错误状态
    */
   const renderError = (): JSX.Element => (
-    <div className="error">
-      {state.error}
-    </div>
+    <>
+      {state.error && (
+        <div className="error">
+          {state.error}
+        </div>
+      )}
+      {state.ttsError && (
+        <div className="error tts-error">
+          {state.ttsError}
+          <button 
+            className="error-close-btn"
+            onClick={() => setState(prev => ({ ...prev, ttsError: null }))}
+            title="关闭错误提示"
+          >
+            ×
+          </button>
+        </div>
+      )}
+    </>
   );
 
   /**
@@ -726,36 +744,6 @@ const Popup: React.FC = () => {
           </div>
         </div>
         
-        {/* 当前台词显示 */}
-        {currentDialogue && (
-          <div className="current-dialogue" style={{
-            margin: '6px 0',
-            padding: '8px',
-            backgroundColor: '#f8f9fa',
-            borderRadius: '6px',
-            border: '1px solid #e9ecef'
-          }}>
-            <div style={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              fontSize: '12px',
-              color: '#6c757d',
-              marginBottom: '4px'
-            }}>
-              <span>角色{currentDialogue.speaker}</span>
-              <span>第 {currentIndex + 1} / {totalDialogues} 段</span>
-            </div>
-            <div style={{
-              fontSize: '14px',
-              lineHeight: '1.4',
-              color: '#333'
-            }}>
-              {currentDialogue.text}
-            </div>
-          </div>
-        )}
-        
         {/* 音频播放器 - 即使没有音频也显示容器 */}
         <div className="audio-container">
           {currentAudio ? (
@@ -809,6 +797,36 @@ const Popup: React.FC = () => {
             ⏭️ 下一段
           </button>
         </div>
+        
+        {/* 当前台词显示 */}
+        {currentDialogue && (
+          <div className="current-dialogue" style={{
+            margin: '4px 0',
+            padding: '6px',
+            backgroundColor: '#f8f9fa',
+            borderRadius: '6px',
+            border: '1px solid #e9ecef'
+          }}>
+            <div style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              fontSize: '12px',
+              color: '#6c757d',
+              // marginBottom: '3px'
+            }}>
+              <span>角色{currentDialogue.speaker}</span>
+              <span>第 {currentIndex + 1} / {totalDialogues} 段</span>
+            </div>
+            <div style={{
+              fontSize: '14px',
+              lineHeight: '1.4',
+              color: '#333'
+            }}>
+              {currentDialogue.text}
+            </div>
+          </div>
+        )}
       </div>
     );
   };
@@ -826,7 +844,7 @@ const Popup: React.FC = () => {
         {state.loading && renderLoading()}
         {!state.loading && (
           <>
-            {state.error && renderError()}
+            {(state.error || state.ttsError) && renderError()}
             {renderConfigInfo()}
             {renderActions()}
             {renderPodcastPlayer()}
