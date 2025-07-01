@@ -1,4 +1,4 @@
-import { PageContent } from '@/shared/types';
+import { PageContent, PageImage } from '@/shared/types';
 import { generateId, cleanText } from '@/shared/utils';
 
 /**
@@ -59,12 +59,14 @@ class ContentScript {
   private extractPageContent(): PageContent {
     const title = this.extractTitle();
     const content = this.extractMainContent();
+    const images = this.extractContentImages();
     const url = window.location.href;
     const timestamp = Date.now();
 
     return {
       title,
       content,
+      images,
       url,
       timestamp
     };
@@ -128,6 +130,146 @@ class ContentScript {
 
     // 最后的备选方案：提取body中的文本
     return this.extractTextFromElement(document.body).substring(0, 5000);
+  }
+
+  /**
+   * 提取内容区域的图片
+   */
+  private extractContentImages(): PageImage[] {
+    const images: PageImage[] = [];
+    
+    // 内容区域选择器
+    const contentSelectors = [
+      'article',
+      'main',
+      '[role="main"]',
+      '.content',
+      '.post-content',
+      '.article-content',
+      '.entry-content',
+      '#content',
+      '.main-content'
+    ];
+    
+    // 先尝试从内容区域提取图片
+    for (const selector of contentSelectors) {
+      const contentElement = document.querySelector(selector);
+      if (contentElement) {
+        const contentImages = this.extractImagesFromElement(contentElement);
+        if (contentImages.length > 0) {
+          images.push(...contentImages);
+          break; // 找到内容区域就停止
+        }
+      }
+    }
+    
+    // 如果内容区域没有图片，从整个页面提取（排除导航、广告等）
+    if (images.length === 0) {
+      images.push(...this.extractImagesFromElement(document.body));
+    }
+    
+    return images;
+  }
+  
+  /**
+   * 从指定元素中提取图片
+   */
+  private extractImagesFromElement(element: Element): PageImage[] {
+    const images: PageImage[] = [];
+    const imgElements = element.querySelectorAll('img');
+    
+    imgElements.forEach(img => {
+      // 过滤掉不相关的图片
+      if (this.isContentImage(img)) {
+        const src = img.src || img.getAttribute('data-src') || img.getAttribute('data-lazy-src');
+        if (src && this.isValidImageUrl(src)) {
+          images.push({
+            src: this.normalizeImageUrl(src),
+            alt: img.alt || '',
+            width: img.naturalWidth || undefined,
+            height: img.naturalHeight || undefined
+          });
+        }
+      }
+    });
+    
+    return images;
+  }
+  
+  /**
+   * 判断是否为内容相关图片
+   */
+  private isContentImage(img: HTMLImageElement): boolean {
+    // 排除小尺寸图片（可能是图标、按钮等）
+    if (img.width < 50 || img.height < 50) {
+      return false;
+    }
+    
+    // 排除特定类名或ID的图片
+    const excludePatterns = [
+      'logo', 'icon', 'avatar', 'profile', 'banner', 'ad', 'advertisement',
+      'navigation', 'nav', 'menu', 'sidebar', 'footer', 'header'
+    ];
+    
+    const className = img.className.toLowerCase();
+    const id = img.id.toLowerCase();
+    const alt = img.alt.toLowerCase();
+    
+    for (const pattern of excludePatterns) {
+      if (className.includes(pattern) || id.includes(pattern) || alt.includes(pattern)) {
+        return false;
+      }
+    }
+    
+    // 检查父元素是否为排除的容器
+    let parent = img.parentElement;
+    while (parent && parent !== document.body) {
+      const parentClass = parent.className.toLowerCase();
+      for (const pattern of excludePatterns) {
+        if (parentClass.includes(pattern)) {
+          return false;
+        }
+      }
+      parent = parent.parentElement;
+    }
+    
+    return true;
+  }
+  
+  /**
+   * 验证图片URL是否有效
+   */
+  private isValidImageUrl(url: string): boolean {
+    // 排除base64图片（通常是小图标）
+    if (url.startsWith('data:')) {
+      return false;
+    }
+    
+    // 检查是否为图片格式
+    const imageExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.svg'];
+    const urlLower = url.toLowerCase();
+    
+    return imageExtensions.some(ext => 
+      urlLower.includes(ext) || 
+      urlLower.match(new RegExp(`\\${ext}(\\?|$)`))
+    ) || url.includes('image') || url.includes('img');
+  }
+  
+  /**
+   * 标准化图片URL
+   */
+  private normalizeImageUrl(url: string): string {
+    // 如果是相对路径，转换为绝对路径
+    if (url.startsWith('//')) {
+      return window.location.protocol + url;
+    }
+    if (url.startsWith('/')) {
+      return window.location.origin + url;
+    }
+    if (!url.startsWith('http')) {
+      return new URL(url, window.location.href).href;
+    }
+    return url;
   }
 
   /**

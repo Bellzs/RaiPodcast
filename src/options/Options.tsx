@@ -23,6 +23,7 @@ interface OptionsState {
   modal: ModalData | null;
   editingAgent: AgentConfig | null;
   editingTTS: TTSConfig | null;
+  showApiKeys: { [configId: string]: boolean };
 }
 
 const Options: React.FC = () => {
@@ -36,7 +37,8 @@ const Options: React.FC = () => {
     message: null,
     modal: null,
     editingAgent: null,
-    editingTTS: null
+    editingTTS: null,
+    showApiKeys: {}
   });
 
   useEffect(() => {
@@ -231,7 +233,7 @@ const Options: React.FC = () => {
   /**
    * 更新Agent配置
    */
-  const updateAgentConfig = (id: string, field: keyof AgentConfig, value: string): void => {
+  const updateAgentConfig = (id: string, field: keyof AgentConfig, value: string | boolean): void => {
     setState(prev => ({
       ...prev,
       agentConfigs: prev.agentConfigs.map(config => 
@@ -501,6 +503,19 @@ const Options: React.FC = () => {
   };
 
   /**
+   * 切换API密钥显示状态
+   */
+  const toggleApiKeyVisibility = (configId: string): void => {
+    setState(prev => ({
+      ...prev,
+      showApiKeys: {
+        ...prev.showApiKeys,
+        [configId]: !prev.showApiKeys[configId]
+      }
+    }));
+  };
+
+  /**
    * 渲染弹窗
    */
   const renderModal = (): JSX.Element | null => {
@@ -609,6 +624,9 @@ const Options: React.FC = () => {
                   {state.settings.defaultAgentId === config.id && (
                     <span style={{ marginLeft: '8px', fontSize: '12px', color: '#007bff' }}>(默认)</span>
                   )}
+                  {config.supportsImages && (
+                    <span style={{ marginLeft: '8px', fontSize: '12px', color: '#52c41a', backgroundColor: '#f6ffed', padding: '2px 6px', borderRadius: '4px', border: '1px solid #b7eb8f' }}>📷 支持图片</span>
+                  )}
                 </h3>
                 <div>
                   <button 
@@ -667,13 +685,35 @@ const Options: React.FC = () => {
                   
                   <div className="form-group">
                     <label className="form-label">API密钥</label>
-                    <input
-                      type="password"
-                      className="form-input"
-                      value={config.apiKey}
-                      onChange={(e) => updateAgentConfig(config.id, 'apiKey', e.target.value)}
-                      placeholder="sk-..."
-                    />
+                    <div style={{ position: 'relative' }}>
+                      <input
+                        type={state.showApiKeys[config.id] ? "text" : "password"}
+                        className="form-input"
+                        value={config.apiKey}
+                        onChange={(e) => updateAgentConfig(config.id, 'apiKey', e.target.value)}
+                        placeholder="sk-..."
+                        style={{ paddingRight: '40px' }}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => toggleApiKeyVisibility(config.id)}
+                        style={{
+                          position: 'absolute',
+                          right: '8px',
+                          top: '50%',
+                          transform: 'translateY(-50%)',
+                          background: 'none',
+                          border: 'none',
+                          cursor: 'pointer',
+                          fontSize: '16px',
+                          color: '#666',
+                          padding: '4px'
+                        }}
+                        title={state.showApiKeys[config.id] ? '隐藏密钥' : '显示密钥'}
+                      >
+                        {state.showApiKeys[config.id] ? '🙈' : '👁️'}
+                      </button>
+                    </div>
                   </div>
                   
                   <div className="form-group">
@@ -696,6 +736,21 @@ const Options: React.FC = () => {
                       placeholder="定义AI的角色和行为..."
                       rows={4}
                     />
+                  </div>
+                  
+                  <div className="form-group">
+                    <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <input
+                        type="checkbox"
+                        checked={config.supportsImages || false}
+                        onChange={(e) => updateAgentConfig(config.id, 'supportsImages', e.target.checked)}
+                        style={{ margin: 0 }}
+                      />
+                      支持图片输入（多模态）
+                    </label>
+                    <p style={{ fontSize: '12px', color: '#666', margin: '4px 0 0 0' }}>
+                      启用后将在生成播客时同时发送网页中的图片内容
+                    </p>
                   </div>
                   
                   <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
@@ -830,13 +885,43 @@ const Options: React.FC = () => {
                     
                     <div className="form-group">
                       <label className="form-label">cURL命令</label>
-                      <textarea
-                        className="form-textarea"
-                        value={config.curlCommand}
-                        onChange={(e) => updateTTSConfig(config.id, 'curlCommand', e.target.value)}
-                        placeholder="输入完整的cURL命令，使用{text}作为文本占位符"
-                        rows={3}
-                      />
+                      <div style={{ position: 'relative' }}>
+                        <textarea
+                          className="form-textarea"
+                          value={state.showApiKeys[config.id] ? config.curlCommand : '•'.repeat(config.curlCommand.length)}
+                          onChange={(e) => {
+                            if (state.showApiKeys[config.id]) {
+                              updateTTSConfig(config.id, 'curlCommand', e.target.value);
+                            }
+                          }}
+                          placeholder="输入完整的cURL命令，使用{text}作为文本占位符"
+                          rows={3}
+                          readOnly={!state.showApiKeys[config.id]}
+                          style={{ 
+                            paddingRight: '40px', 
+                            fontFamily: state.showApiKeys[config.id] ? 'monospace' : 'inherit',
+                            cursor: state.showApiKeys[config.id] ? 'text' : 'default'
+                          }}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => toggleApiKeyVisibility(config.id)}
+                          style={{
+                            position: 'absolute',
+                            right: '8px',
+                            top: '8px',
+                            background: 'none',
+                            border: 'none',
+                            cursor: 'pointer',
+                            fontSize: '16px',
+                            color: '#666',
+                            padding: '4px'
+                          }}
+                          title={state.showApiKeys[config.id] ? '隐藏命令' : '显示命令'}
+                        >
+                          {state.showApiKeys[config.id] ? '🙈' : '👁️'}
+                        </button>
+                      </div>
                     </div>
                     
                     <button 

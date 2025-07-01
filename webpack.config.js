@@ -2,7 +2,10 @@ const path = require('path');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
 const CopyWebpackPlugin = require('copy-webpack-plugin');
 
-module.exports = {
+module.exports = (env, argv) => {
+  const isDevelopment = argv.mode === 'development';
+  
+  return {
   entry: {
     'background/service-worker': './src/background/service-worker.ts',
     'content/content-script': './src/content/content-script.ts',
@@ -60,5 +63,7 @@ module.exports = {
   ],
   optimization: {
     splitChunks: false
-  }
+  },
+  devtool: isDevelopment ? 'cheap-module-source-map' : false
+  };
 };

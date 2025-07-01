@@ -1,7 +1,15 @@
 // 基础类型定义
+export interface PageImage {
+  src: string;
+  alt: string;
+  width?: number;
+  height?: number;
+}
+
 export interface PageContent {
   title: string;
   content: string;
+  images: PageImage[];
   url: string;
   timestamp: number;
 }
@@ -13,6 +21,7 @@ export interface AgentConfig {
   apiKey: string;
   model: string;
   systemPrompt: string;
+  supportsImages: boolean;
 }
 
 export interface TTSConfig {
