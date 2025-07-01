@@ -1,11 +1,327 @@
 import { ChromeMessage, ExtractContentMessage, GeneratePodcastMessage } from '@/shared/types';
 import { MESSAGE_TYPES } from '@/shared/constants';
+import { AudioRequest, AudioResponse, PodcastSession } from '@/shared/types';
+
+/**
+ * 音频会话管理器
+ * 负责统一管理音频的获取、缓存和预加载
+ */
+class AudioSessionManager {
+  private audioCache = new Map<string, string>(); // sessionId:index -> audioUrl
+  private sessionData = new Map<string, PodcastSession>();
+  private generatingAudio = new Set<string>(); // 正在生成的音频标识
+  private ttsConfigs = new Map<string, any>(); // sessionId -> ttsConfigs
+
+  /**
+   * 获取音频
+   */
+  async getAudio(request: AudioRequest): Promise<AudioResponse> {
+    const { sessionId, index, direction = 'current' } = request;
+    const cacheKey = `${sessionId}:${index}`;
+    
+    try {
+      // 检查缓存
+      if (this.audioCache.has(cacheKey)) {
+        console.log(`从缓存获取音频: ${cacheKey}`);
+        return {
+          success: true,
+          audioUrl: this.audioCache.get(cacheKey)!,
+          index,
+          totalCount: this.getSessionTotalCount(sessionId)
+        };
+      }
+
+      // 检查是否正在生成
+      if (this.generatingAudio.has(cacheKey)) {
+        console.log(`音频正在生成中: ${cacheKey}`);
+        return {
+          success: false,
+          error: '音频正在生成中，请稍候'
+        };
+      }
+
+      // 开始生成音频
+      this.generatingAudio.add(cacheKey);
+      console.log(`开始生成音频: ${cacheKey}`);
+      
+      const audioUrl = await this.generateAudio(sessionId, index);
+      
+      // 缓存音频
+      this.audioCache.set(cacheKey, audioUrl);
+      this.generatingAudio.delete(cacheKey);
+      
+      // 预加载下一条音频
+      if (direction === 'next' || direction === 'current') {
+        this.preloadNextAudio(sessionId, index + 1);
+      }
+      
+      console.log(`音频生成完成: ${cacheKey}`);
+      return {
+        success: true,
+        audioUrl,
+        index,
+        totalCount: this.getSessionTotalCount(sessionId)
+      };
+      
+    } catch (error) {
+      this.generatingAudio.delete(cacheKey);
+      console.error(`音频生成失败: ${cacheKey}`, error);
+      return {
+        success: false,
+        error: `音频生成失败: ${(error as Error).message}`
+      };
+    }
+  }
+
+  /**
+   * 预加载下一条音频
+   */
+  private async preloadNextAudio(sessionId: string, nextIndex: number): Promise<void> {
+    const cacheKey = `${sessionId}:${nextIndex}`;
+    
+    // 检查是否已缓存或正在生成
+    if (this.audioCache.has(cacheKey) || this.generatingAudio.has(cacheKey)) {
+      return;
+    }
+    
+    // 检查索引是否有效
+    const totalCount = this.getSessionTotalCount(sessionId);
+    if (nextIndex >= totalCount) {
+      return;
+    }
+    
+    try {
+      this.generatingAudio.add(cacheKey);
+      console.log(`预加载音频: ${cacheKey}`);
+      
+      const audioUrl = await this.generateAudio(sessionId, nextIndex);
+      this.audioCache.set(cacheKey, audioUrl);
+      this.generatingAudio.delete(cacheKey);
+      
+      console.log(`预加载完成: ${cacheKey}`);
+    } catch (error) {
+      this.generatingAudio.delete(cacheKey);
+      console.error(`预加载失败: ${cacheKey}`, error);
+    }
+  }
+
+  /**
+   * 生成音频
+   */
+  private async generateAudio(sessionId: string, index: number): Promise<string> {
+    const session = this.sessionData.get(sessionId);
+    if (!session) {
+      throw new Error(`会话不存在: ${sessionId}`);
+    }
+    
+    if (index >= session.dialogue.length) {
+      throw new Error(`音频索引超出范围: ${index}`);
+    }
+    
+    const dialogueItem = session.dialogue[index];
+    // 调用TTS生成逻辑，传递sessionId
+    return await this.callTTSServiceWithSession(sessionId, dialogueItem.text, dialogueItem.speaker);
+  }
+
+  /**
+   * 调用TTS服务（带会话ID）
+   */
+  private async callTTSServiceWithSession(sessionId: string, text: string, speaker: 'A' | 'B'): Promise<string> {
+    const ttsConfigs = this.getTTSConfigs(sessionId);
+    if (!ttsConfigs) {
+      throw new Error('TTS配置不存在');
+    }
+    
+    const voiceConfig = speaker === 'A' ? ttsConfigs.voiceA : ttsConfigs.voiceB;
+    if (!voiceConfig) {
+      throw new Error(`${speaker}角色的语音配置不存在`);
+    }
+    
+    // 调用原有的TTS生成逻辑
+    return await this.callOriginalTTSService(text, voiceConfig);
+  }
+
+
+
+  /**
+   * 调用原有的TTS服务
+   */
+  private async callOriginalTTSService(text: string, voiceConfig: any): Promise<string> {
+    try {
+      // 解析cURL命令
+      const curlCommand = voiceConfig.curlCommand;
+      const urlMatch = curlCommand.match(/curl\s+['"']?([^'"'\s]+)['"']?/);
+      if (!urlMatch) {
+        throw new Error('无法解析TTS API URL');
+      }
+      
+      let url = urlMatch[1];
+      
+      // 替换URL中的{text}占位符
+      if (url.includes('{text}')) {
+        url = url.replace('{text}', encodeURIComponent(text));
+      }
+      
+      // 提取headers
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+      const headerMatches = curlCommand.matchAll(/-H\s+['"']([^'"']+)['"']?/g);
+      for (const match of headerMatches) {
+        const headerParts = match[1].split(':');
+        if (headerParts.length >= 2) {
+          const key = headerParts[0].trim();
+          const value = headerParts.slice(1).join(':').trim();
+          headers[key] = value;
+        }
+      }
+      
+      // 提取请求体模板
+      const dataMatch = curlCommand.match(/-d\s+['"']({[^}]+})['"']?/);
+      let requestBody = {};
+      if (dataMatch) {
+        try {
+          requestBody = JSON.parse(dataMatch[1]);
+        } catch (e) {
+          console.warn('解析请求体失败，使用默认格式');
+        }
+      }
+      
+      // 替换请求体中的{text}占位符
+      let finalBody = { ...requestBody };
+      
+      // 递归替换对象中的{text}占位符
+      const replaceTextPlaceholders = (obj: any): any => {
+        if (typeof obj === 'string') {
+          return obj.replace(/{text}/g, text);
+        } else if (Array.isArray(obj)) {
+          return obj.map(replaceTextPlaceholders);
+        } else if (obj && typeof obj === 'object') {
+          const result: any = {};
+          for (const [key, value] of Object.entries(obj)) {
+            result[key] = replaceTextPlaceholders(value);
+          }
+          return result;
+        }
+        return obj;
+      };
+      
+      finalBody = replaceTextPlaceholders(finalBody);
+      
+      // 如果没有找到{text}占位符，则使用默认字段名
+      if (!JSON.stringify(finalBody).includes(text)) {
+        finalBody = {
+          ...finalBody,
+          text: text,
+          input: text // 兼容不同的API格式
+        };
+      }
+      
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: headers,
+        body: JSON.stringify(finalBody)
+      });
+      
+      if (!response.ok) {
+        throw new Error('TTS API调用失败: ' + response.status);
+      }
+      
+      // 检查响应的Content-Type来决定如何处理
+      const contentType = response.headers.get('content-type') || '';
+      
+      if (contentType.includes('audio/') || contentType.includes('application/octet-stream')) {
+        // 直接返回音频数据的情况，转换为base64格式
+        const audioBlob = await response.blob();
+        const arrayBuffer = await audioBlob.arrayBuffer();
+        const uint8Array = new Uint8Array(arrayBuffer);
+        const binaryString = Array.from(uint8Array, byte => String.fromCharCode(byte)).join('');
+        const base64Audio = btoa(binaryString);
+        const mimeType = contentType || 'audio/mpeg';
+        return `data:${mimeType};base64,${base64Audio}`;
+      } else {
+        // JSON响应的情况，包含音频URL或base64数据
+        try {
+          const result = await response.json();
+          return result.audio_url || result.data || result.url || '';
+        } catch (jsonError) {
+          // 如果JSON解析失败，尝试作为文本处理
+          const textResult = await response.text();
+          // 检查是否是base64编码的音频数据
+          if (textResult.startsWith('data:audio/') || textResult.match(/^[A-Za-z0-9+/]+=*$/)) {
+            return textResult;
+          }
+          throw new Error('无法解析TTS API响应: ' + textResult.substring(0, 100));
+        }
+      }
+      
+    } catch (error) {
+      console.error('音频生成失败:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * 获取会话总音频数量
+   */
+  private getSessionTotalCount(sessionId: string): number {
+    const session = this.sessionData.get(sessionId);
+    return session ? session.dialogue.length : 0;
+  }
+
+  /**
+   * 设置会话数据
+   */
+  setSessionData(sessionId: string, session: PodcastSession): void {
+    this.sessionData.set(sessionId, session);
+  }
+
+  /**
+   * 设置TTS配置
+   */
+  setTTSConfigs(sessionId: string, configs: any): void {
+    this.ttsConfigs.set(sessionId, configs);
+  }
+
+  /**
+   * 获取TTS配置
+   */
+  private getTTSConfigs(sessionId: string): any {
+    return this.ttsConfigs.get(sessionId);
+  }
+
+  /**
+   * 清理会话缓存
+   */
+  clearSessionCache(sessionId: string): void {
+    // 清理音频缓存
+    for (const key of this.audioCache.keys()) {
+      if (key.startsWith(`${sessionId}:`)) {
+        this.audioCache.delete(key);
+      }
+    }
+    
+    // 清理生成状态
+    for (const key of this.generatingAudio) {
+      if (key.startsWith(`${sessionId}:`)) {
+        this.generatingAudio.delete(key);
+      }
+    }
+    
+    // 清理会话数据
+    this.sessionData.delete(sessionId);
+    
+    // 清理TTS配置
+    this.ttsConfigs.delete(sessionId);
+  }
+}
 
 /**
  * Chrome扩展后台服务Worker
  */
 class ServiceWorker {
+  private audioManager: AudioSessionManager;
+
   constructor() {
+    this.audioManager = new AudioSessionManager();
     this.init();
   }
 
@@ -68,8 +384,8 @@ class ServiceWorker {
             await this.handleGeneratePodcast(message as GeneratePodcastMessage, sender, sendResponse);
             break;
             
-          case MESSAGE_TYPES.GET_NEXT_AUDIO:
-            await this.handleGetNextAudio(message, sender, sendResponse);
+          case MESSAGE_TYPES.GET_AUDIO:
+            await this.handleGetAudio(message, sender, sendResponse);
             break;
             
           case 'CONTENT_SCRIPT_READY':
@@ -161,6 +477,31 @@ class ServiceWorker {
   }
 
   /**
+   * 处理音频获取请求
+   */
+  private async handleGetAudio(
+    message: any,
+    sender: chrome.runtime.MessageSender,
+    sendResponse: (response?: any) => void
+  ): Promise<void> {
+    try {
+      const request = message.data as AudioRequest;
+      console.log('收到音频请求:', request);
+      
+      const response = await this.audioManager.getAudio(request);
+      console.log('音频请求处理完成:', response);
+      
+      sendResponse(response);
+    } catch (error) {
+      console.error('处理音频请求失败:', error);
+      sendResponse({
+        success: false,
+        error: (error as Error).message
+      });
+    }
+  }
+
+  /**
    * 处理播客生成请求
    */
   private async handleGeneratePodcast(
@@ -209,46 +550,56 @@ class ServiceWorker {
       
       const sessionId = 'session_' + Date.now();
       
-      // 生成第一条音频（如果失败不影响文本内容显示）
-      let firstAudio = null;
-      let audioError = null;
+      // 创建会话数据
+      const session: PodcastSession = {
+        id: sessionId,
+        title: content.title,
+        content: content,
+        dialogue: dialogues.map((d, index) => ({
+          speaker: d.speaker as 'A' | 'B',
+          text: d.text,
+          timestamp: Date.now() + index
+        })),
+        audioSegments: [],
+        createdAt: Date.now(),
+        status: 'generating'
+      };
       
-      try {
-        if (dialogues.length > 0) {
-          const firstDialogue = dialogues[0];
-          const voiceConfig = firstDialogue.speaker === 'A' ? ttsConfigs.voiceA : ttsConfigs.voiceB;
-          firstAudio = await this.generateAudio(firstDialogue.text, voiceConfig);
-          console.log('第一条音频生成完成');
-        }
-      } catch (error) {
-        console.error('音频生成失败:', error);
-        audioError = (error as Error).message;
-      }
+      // 设置会话数据到AudioSessionManager
+      this.audioManager.setSessionData(sessionId, session);
       
-      // 存储会话数据
-      await this.storePodcastSession(sessionId, {
-        dialogues,
-        ttsConfigs,
-        currentIndex: 0,
-        audioCache: firstAudio ? { 0: firstAudio } : {}
-      });
+      // 存储TTS配置到AudioSessionManager（临时方案）
+      await this.storeTTSConfigs(sessionId, ttsConfigs);
       
+      // 立即返回播客文本，不等待音频生成
       sendResponse({
         success: true,
         data: {
           sessionId,
           totalDialogues: dialogues.length,
-          dialogues, // 添加对话内容
-          firstAudio,
-          audioError, // 添加音频错误信息
-          status: firstAudio ? 'ready' : 'text_only'
+          dialogues,
+          status: 'text_ready' // 文本已准备好，音频正在生成
         }
+      });
+      
+      console.log(`会话 ${sessionId} 创建完成，包含 ${dialogues.length} 段对话`);
+      
+      // 异步生成第一条音频
+      this.generateAudioAsync(sessionId, 0).catch(error => {
+        console.error('生成第一条音频失败:', error);
       });
       
     } catch (error) {
       console.error('生成播客失败:', error as Error);
       sendResponse({ success: false, error: (error as Error).message });
     }
+  }
+
+  /**
+   * 存储TTS配置
+   */
+  private async storeTTSConfigs(sessionId: string, ttsConfigs: any): Promise<void> {
+    this.audioManager.setTTSConfigs(sessionId, ttsConfigs);
   }
 
   /**
@@ -568,6 +919,57 @@ class ServiceWorker {
   }
 
   /**
+   * 通知前端音频准备就绪
+   */
+  private async notifyAudioReady(sessionId: string, index: number, audio: string): Promise<void> {
+    try {
+      // 使用chrome.runtime.sendMessage向popup发送消息
+      // 在Manifest V3中，chrome.extension.getViews已被弃用
+      chrome.runtime.sendMessage({
+        type: MESSAGE_TYPES.AUDIO_READY,
+        data: {
+          sessionId,
+          index,
+          audio
+        }
+      }).catch((error) => {
+        // 如果popup未打开，sendMessage会失败，这是正常的
+        console.log('发送音频准备消息失败（popup可能未打开）:', error.message);
+      });
+      
+      console.log('已通知前端第 ' + (index + 1) + ' 条音频准备就绪');
+    } catch (error) {
+      console.error('通知前端音频准备就绪失败:', error);
+    }
+  }
+
+  /**
+   * 异步生成第一条音频
+   */
+  private async generateFirstAudioAsync(sessionId: string, dialogues: any[], ttsConfigs: any): Promise<void> {
+    try {
+      if (dialogues.length > 0) {
+        const firstDialogue = dialogues[0];
+        const voiceConfig = firstDialogue.speaker === 'A' ? ttsConfigs.voiceA : ttsConfigs.voiceB;
+        const audio = await this.generateAudio(firstDialogue.text, voiceConfig);
+        
+        // 更新缓存
+        const sessionData = await this.getPodcastSession(sessionId);
+        if (sessionData) {
+          sessionData.audioCache[0] = audio;
+          await this.storePodcastSession(sessionId, sessionData);
+          console.log('第一条音频异步生成完成');
+          
+          // 通知前端音频生成完成
+          this.notifyAudioReady(sessionId, 0, audio);
+        }
+      }
+    } catch (error) {
+      console.error('异步生成第一条音频失败:', error);
+    }
+  }
+
+  /**
    * 存储播客会话数据
    */
   private async storePodcastSession(sessionId: string, sessionData: any): Promise<void> {
@@ -656,8 +1058,262 @@ class ServiceWorker {
         }
       });
       
+      // 预加载下下一条音频（nextIndex + 1）
+      const preloadIndex = nextIndex + 1;
+      if (preloadIndex < dialogues.length && !audioCache[preloadIndex]) {
+        this.generateAudioAsync(sessionId, preloadIndex);
+        console.log('开始预加载第 ' + (preloadIndex + 1) + ' 条音频');
+      }
+      
     } catch (error) {
       console.error('获取下一条音频失败:', error as Error);
+      sendResponse({ success: false, error: (error as Error).message });
+    }
+  }
+
+  /**
+   * 处理获取当前音频请求
+   */
+  private async handleGetCurrentAudio(
+    message: any,
+    sender: chrome.runtime.MessageSender,
+    sendResponse: (response?: any) => void
+  ): Promise<void> {
+    try {
+      const { sessionId, currentIndex } = message.data;
+      
+      if (!sessionId) {
+        throw new Error('会话ID不能为空');
+      }
+      
+      // 获取会话数据
+      const sessionData = await this.getPodcastSession(sessionId);
+      if (!sessionData) {
+        throw new Error('会话数据不存在');
+      }
+      
+      const { dialogues, ttsConfigs, audioCache } = sessionData;
+      
+      // 检查索引是否有效
+      if (currentIndex < 0 || currentIndex >= dialogues.length) {
+        throw new Error('音频索引无效');
+      }
+      
+      // 检查缓存中是否已有该音频
+      if (audioCache[currentIndex]) {
+        sendResponse({
+          success: true,
+          data: {
+            audio: audioCache[currentIndex],
+            index: currentIndex,
+            cached: true
+          }
+        });
+        return;
+      }
+      
+      // 生成当前音频
+      const currentDialogue = dialogues[currentIndex];
+      const voiceConfig = currentDialogue.speaker === 'A' ? ttsConfigs.voiceA : ttsConfigs.voiceB;
+      const audio = await this.generateAudio(currentDialogue.text, voiceConfig);
+      
+      // 更新缓存
+      audioCache[currentIndex] = audio;
+      await this.storePodcastSession(sessionId, {
+        ...sessionData,
+        audioCache
+      });
+      
+      console.log('第 ' + (currentIndex + 1) + ' 条音频生成完成');
+      
+      sendResponse({
+        success: true,
+        data: {
+          audio: audio,
+          index: currentIndex,
+          cached: false
+        }
+      });
+      
+    } catch (error) {
+      console.error('获取当前音频失败:', error as Error);
+      sendResponse({ success: false, error: (error as Error).message });
+    }
+  }
+
+  /**
+   * 处理预加载下一段音频请求
+   */
+  private async handlePreloadNextAudio(
+    message: any,
+    sender: chrome.runtime.MessageSender,
+    sendResponse: (response?: any) => void
+  ): Promise<void> {
+    try {
+      const { sessionId, currentIndex } = message.data;
+      
+      if (!sessionId) {
+        throw new Error('会话ID不能为空');
+      }
+      
+      // 获取会话数据
+      const sessionData = await this.getPodcastSession(sessionId);
+      if (!sessionData) {
+        throw new Error('会话数据不存在');
+      }
+      
+      const { dialogues, ttsConfigs, audioCache } = sessionData;
+      const nextIndex = currentIndex + 1;
+      
+      // 检查是否还有下一条对话
+      if (nextIndex >= dialogues.length) {
+        sendResponse({
+          success: true,
+          data: {
+            message: '没有下一条对话需要预加载'
+          }
+        });
+        return;
+      }
+      
+      // 检查缓存中是否已有该音频
+      if (audioCache[nextIndex]) {
+        sendResponse({
+          success: true,
+          data: {
+            message: '下一条音频已在缓存中',
+            index: nextIndex
+          }
+        });
+        return;
+      }
+      
+      // 立即返回响应，然后异步生成音频
+      sendResponse({
+        success: true,
+        data: {
+          message: '开始预加载下一条音频',
+          index: nextIndex
+        }
+      });
+      
+      // 异步生成下一条音频
+      this.generateAudioAsync(sessionId, nextIndex);
+      
+    } catch (error) {
+      console.error('预加载下一段音频失败:', error as Error);
+      sendResponse({ success: false, error: (error as Error).message });
+    }
+  }
+
+  /**
+   * 异步生成指定索引的音频
+   */
+  private async generateAudioAsync(sessionId: string, index: number): Promise<void> {
+    try {
+      console.log(`开始异步生成音频: ${sessionId}:${index}`);
+      
+      // 使用AudioSessionManager生成音频
+      const response = await this.audioManager.getAudio({
+        sessionId,
+        index,
+        direction: 'current'
+      });
+      
+      if (response.success && response.audioUrl) {
+        console.log(`第 ${index + 1} 条音频异步生成完成`);
+        
+        // 通知前端音频生成完成
+        this.notifyAudioReady(sessionId, index, response.audioUrl);
+      } else {
+        console.error(`第 ${index + 1} 条音频生成失败:`, response.error);
+      }
+    } catch (error) {
+      console.error('异步生成音频失败:', error);
+    }
+  }
+
+  /**
+   * 处理获取上一条音频请求
+   */
+  private async handleGetPreviousAudio(
+    message: any,
+    sender: chrome.runtime.MessageSender,
+    sendResponse: (response?: any) => void
+  ): Promise<void> {
+    try {
+      const { sessionId, currentIndex } = message.data;
+      
+      if (!sessionId) {
+        throw new Error('会话ID不能为空');
+      }
+      
+      // 获取会话数据
+      const sessionData = await this.getPodcastSession(sessionId);
+      if (!sessionData) {
+        throw new Error('会话数据不存在');
+      }
+      
+      const { dialogues, ttsConfigs, audioCache } = sessionData;
+      const previousIndex = currentIndex - 1;
+      
+      // 检查是否还有上一条对话
+      if (previousIndex < 0) {
+        sendResponse({
+          success: true,
+          data: {
+            hasPrevious: false,
+            message: '已经是第一条对话'
+          }
+        });
+        return;
+      }
+      
+      // 检查缓存中是否已有该音频
+      if (audioCache[previousIndex]) {
+        sendResponse({
+          success: true,
+          data: {
+            hasPrevious: true,
+            audio: audioCache[previousIndex],
+            index: previousIndex
+          }
+        });
+        return;
+      }
+      
+      // 生成上一条音频
+      const previousDialogue = dialogues[previousIndex];
+      const voiceConfig = previousDialogue.speaker === 'A' ? ttsConfigs.voiceA : ttsConfigs.voiceB;
+      const audio = await this.generateAudio(previousDialogue.text, voiceConfig);
+      
+      // 更新缓存
+      audioCache[previousIndex] = audio;
+      await this.storePodcastSession(sessionId, {
+        ...sessionData,
+        audioCache
+      });
+      
+      console.log('第 ' + (previousIndex + 1) + ' 条音频生成完成');
+      
+      sendResponse({
+        success: true,
+        data: {
+          hasPrevious: true,
+          audio: audio,
+          index: previousIndex
+        }
+      });
+      
+      // 预加载下一条音频（previousIndex + 1）
+      const preloadIndex = previousIndex + 1;
+      if (preloadIndex < dialogues.length && !audioCache[preloadIndex]) {
+        this.generateAudioAsync(sessionId, preloadIndex);
+        console.log('开始预加载第 ' + (preloadIndex + 1) + ' 条音频');
+      }
+      
+    } catch (error) {
+      console.error('获取上一条音频失败:', error as Error);
       sendResponse({ success: false, error: (error as Error).message });
     }
   }

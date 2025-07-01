@@ -9,7 +9,7 @@
 .popup-header {
   display: flex;
   align-items: center;
-  padding: 16px;
+  padding: 12px 16px;
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   color: white;
   border-radius: 8px 8px 0 0;
@@ -29,7 +29,7 @@
 
 .popup-content {
   flex: 1;
-  padding: 16px;
+  padding: 12px;
   overflow-y: auto;
 }
 
@@ -68,7 +68,7 @@
 }
 
 .page-info {
-  margin-bottom: 20px;
+  margin-bottom: 12px;
 }
 
 .info-header {
@@ -125,7 +125,7 @@
 }
 
 .action-section {
-  margin-bottom: 20px;
+  margin-bottom: 12px;
 }
 
 .generate-btn {
@@ -152,6 +152,29 @@
   transform: none;
 }
 
+.generate-btn.generating {
+  animation: colorCycle 2s infinite;
+  cursor: not-allowed;
+}
+
+@keyframes colorCycle {
+  0% {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  }
+  25% {
+    background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+  }
+  50% {
+    background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+  }
+  75% {
+    background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+  }
+  100% {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  }
+}
+
 .status-section {
   margin-bottom: 20px;
 }
@@ -171,8 +194,8 @@
   background: #f8f9fa;
   border: 1px solid #e9ecef;
   border-radius: 6px;
-  padding: 12px;
-  margin-bottom: 16px;
+  padding: 10px;
+  margin-bottom: 12px;
   font-size: 13px;
 }
 
@@ -297,7 +320,7 @@
 }
 
 .audio-container {
-  padding: 12px 16px;
+  padding: 6px 16px;
   border-bottom: 1px solid #e9ecef;
 }
 
@@ -309,20 +332,28 @@
 .player-controls {
   display: flex;
   justify-content: center;
-  gap: 12px;
-  padding: 12px 16px;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
 }
 
 .control-btn {
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   color: white;
   border: none;
-  padding: 8px 16px;
+  padding: 6px 12px;
   border-radius: 6px;
-  font-size: 12px;
+  font-size: 11px;
   cursor: pointer;
   transition: all 0.2s;
+  min-width: 70px;
+  flex: 1;
+}
+
+.control-btn.play-btn {
+  background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
   min-width: 80px;
+  font-weight: 500;
 }
 
 .control-btn:hover:not(:disabled) {
@@ -399,12 +430,16 @@
   }
   
   .player-controls {
-    flex-direction: column;
-    gap: 8px;
+    flex-direction: row;
+    gap: 6px;
+    padding: 6px 8px;
   }
   
   .control-btn {
-    width: 100%;
+    flex: 1;
+    min-width: 60px;
+    font-size: 10px;
+    padding: 4px 6px;
   }
   
   .images-list {
