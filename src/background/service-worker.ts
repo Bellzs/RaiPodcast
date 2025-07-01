@@ -228,7 +228,17 @@ class AudioSessionManager {
       // 检查响应的Content-Type来决定如何处理
       const contentType = response.headers.get('content-type') || '';
       
-      if (contentType.includes('audio/') || contentType.includes('application/octet-stream')) {
+      if (contentType.includes('application/json')) {
+        // JSON响应通常表示错误信息
+        try {
+          const errorResult = await response.json();
+          const errorMessage = errorResult.error || errorResult.message || errorResult.detail || JSON.stringify(errorResult);
+          throw new Error(`TTS服务返回错误: ${errorMessage}`);
+        } catch (jsonError) {
+          const textResult = await response.text();
+          throw new Error(`TTS服务返回错误: ${textResult}`);
+        }
+      } else if (contentType.includes('audio/') || contentType.includes('application/octet-stream')) {
         // 直接返回音频数据的情况，转换为base64格式
         const audioBlob = await response.blob();
         const arrayBuffer = await audioBlob.arrayBuffer();
@@ -238,19 +248,13 @@ class AudioSessionManager {
         const mimeType = contentType || 'audio/mpeg';
         return `data:${mimeType};base64,${base64Audio}`;
       } else {
-        // JSON响应的情况，包含音频URL或base64数据
-        try {
-          const result = await response.json();
-          return result.audio_url || result.data || result.url || '';
-        } catch (jsonError) {
-          // 如果JSON解析失败，尝试作为文本处理
-          const textResult = await response.text();
-          // 检查是否是base64编码的音频数据
-          if (textResult.startsWith('data:audio/') || textResult.match(/^[A-Za-z0-9+/]+=*$/)) {
-            return textResult;
-          }
-          throw new Error('无法解析TTS API响应: ' + textResult.substring(0, 100));
+        // 其他类型响应，尝试作为文本处理
+        const textResult = await response.text();
+        // 检查是否是base64编码的音频数据
+        if (textResult.startsWith('data:audio/') || textResult.match(/^[A-Za-z0-9+/]+=*$/)) {
+          return textResult;
         }
+        throw new Error('TTS API返回了不支持的内容类型: ' + contentType);
       }
       
     } catch (error) {
@@ -265,6 +269,13 @@ class AudioSessionManager {
   private getSessionTotalCount(sessionId: string): number {
     const session = this.sessionData.get(sessionId);
     return session ? session.dialogue.length : 0;
+  }
+
+  /**
+   * 获取所有会话ID
+   */
+  async getAllSessions(): Promise<string[]> {
+    return Array.from(this.sessionData.keys());
   }
 
   /**
@@ -386,6 +397,10 @@ class ServiceWorker {
             
           case MESSAGE_TYPES.GET_AUDIO:
             await this.handleGetAudio(message, sender, sendResponse);
+            break;
+            
+          case MESSAGE_TYPES.GET_CURRENT_SESSION:
+            await this.handleGetCurrentSession(message, sender, sendResponse);
             break;
             
           case 'CONTENT_SCRIPT_READY':
@@ -887,7 +902,17 @@ class ServiceWorker {
       // 检查响应的Content-Type来决定如何处理
       const contentType = response.headers.get('content-type') || '';
       
-      if (contentType.includes('audio/') || contentType.includes('application/octet-stream')) {
+      if (contentType.includes('application/json')) {
+        // JSON响应通常表示错误信息
+        try {
+          const errorResult = await response.json();
+          const errorMessage = errorResult.error || errorResult.message || errorResult.detail || JSON.stringify(errorResult);
+          throw new Error(`TTS服务返回错误: ${errorMessage}`);
+        } catch (jsonError) {
+          const textResult = await response.text();
+          throw new Error(`TTS服务返回错误: ${textResult}`);
+        }
+      } else if (contentType.includes('audio/') || contentType.includes('application/octet-stream')) {
         // 直接返回音频数据的情况，转换为base64格式
         const audioBlob = await response.blob();
         const arrayBuffer = await audioBlob.arrayBuffer();
@@ -897,19 +922,13 @@ class ServiceWorker {
         const mimeType = contentType || 'audio/mpeg';
         return `data:${mimeType};base64,${base64Audio}`;
       } else {
-        // JSON响应的情况，包含音频URL或base64数据
-        try {
-          const result = await response.json();
-          return result.audio_url || result.data || result.url || '';
-        } catch (jsonError) {
-          // 如果JSON解析失败，尝试作为文本处理
-          const textResult = await response.text();
-          // 检查是否是base64编码的音频数据
-          if (textResult.startsWith('data:audio/') || textResult.match(/^[A-Za-z0-9+/]+=*$/)) {
-            return textResult;
-          }
-          throw new Error('无法解析TTS API响应: ' + textResult.substring(0, 100));
+        // 其他类型响应，尝试作为文本处理
+        const textResult = await response.text();
+        // 检查是否是base64编码的音频数据
+        if (textResult.startsWith('data:audio/') || textResult.match(/^[A-Za-z0-9+/]+=*$/)) {
+          return textResult;
         }
+        throw new Error('TTS API返回了不支持的内容类型: ' + contentType);
       }
       
     } catch (error) {
@@ -940,6 +959,26 @@ class ServiceWorker {
       console.log('已通知前端第 ' + (index + 1) + ' 条音频准备就绪');
     } catch (error) {
       console.error('通知前端音频准备就绪失败:', error);
+    }
+  }
+
+  /**
+   * 通知前端TTS错误
+   */
+  private notifyTTSError(sessionId: string, index: number, errorMessage: string): void {
+    try {
+      chrome.runtime.sendMessage({
+        type: MESSAGE_TYPES.TTS_ERROR,
+        data: {
+          sessionId,
+          index,
+          error: errorMessage
+        }
+      }).catch(error => {
+        console.log('发送TTS错误消息失败（popup可能未打开）:', error.message);
+      });
+    } catch (error) {
+      console.error('通知前端TTS错误失败:', error);
     }
   }
 
@@ -1227,9 +1266,59 @@ class ServiceWorker {
         this.notifyAudioReady(sessionId, index, response.audioUrl);
       } else {
         console.error(`第 ${index + 1} 条音频生成失败:`, response.error);
+        
+        // 通知前端TTS错误
+        this.notifyTTSError(sessionId, index, response.error || '音频生成失败');
       }
     } catch (error) {
       console.error('异步生成音频失败:', error);
+      
+      // 通知前端TTS错误
+      this.notifyTTSError(sessionId, index, (error as Error).message || '音频生成异常');
+    }
+  }
+
+  /**
+   * 处理获取当前会话状态请求
+   */
+  private async handleGetCurrentSession(
+    message: any,
+    sender: chrome.runtime.MessageSender,
+    sendResponse: (response?: any) => void
+  ): Promise<void> {
+    try {
+      // 获取最近的会话ID（简单实现：获取最新的会话）
+      const sessions = await this.audioManager.getAllSessions();
+      if (!sessions || sessions.length === 0) {
+        sendResponse({ success: false, error: '没有找到播客会话' });
+        return;
+      }
+      
+      // 获取最新的会话
+      const latestSessionId = sessions[sessions.length - 1];
+      const sessionData = await this.getPodcastSession(latestSessionId);
+      
+      if (!sessionData) {
+        sendResponse({ success: false, error: '会话数据不存在' });
+        return;
+      }
+      
+      // 返回会话基本信息和第一条音频（如果有的话）
+      const firstAudio = sessionData.audioCache[0] || null;
+      
+      sendResponse({
+        success: true,
+        data: {
+          sessionId: latestSessionId,
+          totalDialogues: sessionData.dialogues.length,
+          dialogues: sessionData.dialogues,
+          firstAudio: firstAudio
+        }
+      });
+      
+    } catch (error) {
+      console.error('获取当前会话状态失败:', error as Error);
+      sendResponse({ success: false, error: (error as Error).message });
     }
   }
 

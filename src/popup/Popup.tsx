@@ -64,8 +64,8 @@ const Popup: React.FC = () => {
           });
           
           if (prev.podcastSession && prev.podcastSession.sessionId === sessionId) {
-            // 如果是当前索引的音频且当前没有音频，则更新状态
-            if (index === prev.podcastSession.currentIndex && !prev.podcastSession.currentAudio) {
+            // 如果是当前索引的音频，则更新状态（移除currentAudio的检查条件）
+            if (index === prev.podcastSession.currentIndex) {
               console.log(`更新状态：设置第${index + 1}条音频`);
               return {
                 ...prev,
@@ -80,6 +80,17 @@ const Popup: React.FC = () => {
         });
         
         console.log('收到音频准备就绪通知，索引:', index);
+      }
+      
+      if (message.type === MESSAGE_TYPES.TTS_ERROR) {
+        const { sessionId, index, error } = message.data;
+        console.log('处理TTS_ERROR消息:', { sessionId, index, error });
+        
+        // 显示TTS错误信息
+        setState(prev => ({
+          ...prev,
+          error: `第${index + 1}条音频生成失败: ${error}`
+        }));
       }
     };
 
@@ -104,14 +115,17 @@ const Popup: React.FC = () => {
         throw new Error('无法获取当前标签页');
       }
 
-      // 并行获取页面内容和配置信息
-      const [contentResponse, agentConfig, ttsConfigs] = await Promise.all([
+      // 并行获取页面内容、配置信息和当前会话状态
+      const [contentResponse, agentConfig, ttsConfigs, sessionResponse] = await Promise.all([
         chrome.runtime.sendMessage({
           type: MESSAGE_TYPES.EXTRACT_CONTENT,
           data: { tabId: tab.id }
         }),
         StorageManager.getCurrentAgentConfig(),
-        StorageManager.getCurrentTTSConfigs()
+        StorageManager.getCurrentTTSConfigs(),
+        chrome.runtime.sendMessage({
+          type: MESSAGE_TYPES.GET_CURRENT_SESSION
+        })
       ]);
 
       if (!contentResponse) {
@@ -119,11 +133,26 @@ const Popup: React.FC = () => {
       }
 
       if (contentResponse.success) {
+        // 检查是否有现有的播客会话需要恢复
+        let podcastSession = null;
+        if (sessionResponse && sessionResponse.success) {
+          console.log('恢复播客会话:', sessionResponse.data);
+          podcastSession = {
+            sessionId: sessionResponse.data.sessionId,
+            totalDialogues: sessionResponse.data.totalDialogues,
+            currentIndex: 0, // 默认从第一条开始
+            isPlaying: false,
+            currentAudio: sessionResponse.data.firstAudio || null,
+            dialogues: sessionResponse.data.dialogues || []
+          };
+        }
+        
         setState(prev => ({
           ...prev,
           pageContent: contentResponse.data,
           currentAgent: agentConfig,
           currentVoices: ttsConfigs || { voiceA: null, voiceB: null },
+          podcastSession: podcastSession,
           loading: false
         }));
       } else {
@@ -283,7 +312,8 @@ const Popup: React.FC = () => {
         type: MESSAGE_TYPES.GET_AUDIO,
         data: {
           sessionId: state.podcastSession.sessionId,
-          index: nextIndex
+          index: nextIndex,
+          direction: 'next' // 明确指定为下一条音频请求
         }
       });
       
@@ -321,7 +351,8 @@ const Popup: React.FC = () => {
         type: MESSAGE_TYPES.GET_AUDIO,
         data: {
           sessionId: state.podcastSession.sessionId,
-          index: newIndex
+          index: newIndex,
+          direction: 'previous' // 明确指定为上一条音频请求
         }
       });
       
@@ -383,7 +414,8 @@ const Popup: React.FC = () => {
         type: MESSAGE_TYPES.GET_AUDIO,
         data: {
           sessionId: state.podcastSession.sessionId,
-          index: newIndex
+          index: newIndex,
+          direction: 'next' // 明确指定为下一条音频请求
         }
       });
       
@@ -446,7 +478,8 @@ const Popup: React.FC = () => {
         type: MESSAGE_TYPES.GET_AUDIO,
         data: {
           sessionId: state.podcastSession.sessionId,
-          index: newIndex
+          index: newIndex,
+          direction: 'next' // 明确指定为下一条音频请求
         }
       });
       
@@ -537,9 +570,15 @@ const Popup: React.FC = () => {
           </span>
         </div>
         <div className="config-item">
-          <span className="config-label">🎵 音色:</span>
+          <span className="config-label">🎵 角色A:</span>
           <span className="config-value">
-            {state.currentVoices.voiceA?.name || '未配置'} / {state.currentVoices.voiceB?.name || '未配置'}
+            {state.currentVoices.voiceA?.name || '未配置'}
+          </span>
+        </div>
+        <div className="config-item">
+          <span className="config-label">🎵 角色B:</span>
+          <span className="config-value">
+            {state.currentVoices.voiceB?.name || '未配置'}
           </span>
         </div>
       </div>
@@ -663,19 +702,10 @@ const Popup: React.FC = () => {
             <button 
               className="copy-btn"
               onClick={copyAllDialogues}
-              title="复制所有对话内容"
-              style={{
-                marginRight: '8px',
-                padding: '4px 8px',
-                fontSize: '12px',
-                backgroundColor: '#007bff',
-                color: 'white',
-                border: 'none',
-                borderRadius: '4px',
-                cursor: 'pointer'
-              }}
+              title="复制全部对话内容"
+              style={{ marginRight: '8px' }}
             >
-              📋 复制全部
+              📋
             </button>
             <button 
               className="close-btn"
@@ -688,9 +718,6 @@ const Popup: React.FC = () => {
         </div>
         
         <div className="player-info">
-          <p className="track-info">
-            第 {currentIndex + 1} / {totalDialogues} 段
-          </p>
           <div className="progress-bar">
             <div 
               className="progress-fill"
@@ -702,18 +729,22 @@ const Popup: React.FC = () => {
         {/* 当前台词显示 */}
         {currentDialogue && (
           <div className="current-dialogue" style={{
-            margin: '8px 0',
-            padding: '10px',
+            margin: '6px 0',
+            padding: '8px',
             backgroundColor: '#f8f9fa',
             borderRadius: '6px',
             border: '1px solid #e9ecef'
           }}>
             <div style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
               fontSize: '12px',
               color: '#6c757d',
               marginBottom: '4px'
             }}>
-              角色{currentDialogue.speaker}
+              <span>角色{currentDialogue.speaker}</span>
+              <span>第 {currentIndex + 1} / {totalDialogues} 段</span>
             </div>
             <div style={{
               fontSize: '14px',
@@ -732,6 +763,7 @@ const Popup: React.FC = () => {
               controls
               autoPlay={isPlaying}
               onEnded={handleAudioEnded}
+              onPlay={() => loadNextAudio()} // 音频开始播放时预加载下一条
               key={currentIndex}
             >
               <source src={currentAudio} type="audio/mpeg" />
