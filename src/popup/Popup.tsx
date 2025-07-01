@@ -10,6 +10,7 @@ interface PodcastSession {
   currentIndex: number;
   isPlaying: boolean;
   currentAudio: string | null;
+  dialogues: Array<{speaker: string, text: string}>;
 }
 
 interface PopupState {
@@ -132,14 +133,23 @@ const Popup: React.FC = () => {
 
       if (response.success) {
         console.log('播客生成成功:', response.data);
+        
+        // 检查是否有音频错误
+        let errorMessage = null;
+        if (response.data.audioError) {
+          errorMessage = `音频生成失败: ${response.data.audioError}。请检查TTS配置，特别是音色curl设置是否正确。`;
+        }
+        
         setState(prev => ({
           ...prev,
+          error: errorMessage, // 显示音频错误提示
           podcastSession: {
             sessionId: response.data.sessionId,
             totalDialogues: response.data.totalDialogues,
             currentIndex: 0,
             isPlaying: false,
-            currentAudio: response.data.firstAudio
+            currentAudio: response.data.firstAudio,
+            dialogues: response.data.dialogues || []
           }
         }));
       } else {
@@ -416,24 +426,73 @@ const Popup: React.FC = () => {
   };
 
   /**
+   * 复制所有对话内容
+   */
+  const copyAllDialogues = async (): Promise<void> => {
+    if (!state.podcastSession?.dialogues) return;
+    
+    try {
+      const dialogueText = state.podcastSession.dialogues
+        .map(dialogue => `角色${dialogue.speaker}：${dialogue.text}`)
+        .join('\n');
+      
+      await navigator.clipboard.writeText(dialogueText);
+      
+      // 显示复制成功提示
+      const button = document.querySelector('.copy-btn') as HTMLElement;
+      if (button) {
+        const originalText = button.textContent;
+        button.textContent = '✅ 已复制';
+        button.style.backgroundColor = '#28a745';
+        setTimeout(() => {
+          button.textContent = originalText;
+          button.style.backgroundColor = '';
+        }, 2000);
+      }
+    } catch (error) {
+      console.error('复制失败:', error);
+    }
+  };
+
+  /**
    * 渲染播客播放器
    */
   const renderPodcastPlayer = (): JSX.Element => {
     if (!state.podcastSession) return <></>;
     
-    const { currentIndex, totalDialogues, isPlaying, currentAudio } = state.podcastSession;
+    const { currentIndex, totalDialogues, isPlaying, currentAudio, dialogues } = state.podcastSession;
+    const currentDialogue = dialogues[currentIndex];
     
     return (
       <div className="podcast-player">
         <div className="player-header">
           <h3 className="player-title">🎙️ 播客播放器</h3>
-          <button 
-            className="close-btn"
-            onClick={stopPlayback}
-            title="关闭播放器"
-          >
-            ✕
-          </button>
+          <div className="header-buttons">
+            <button 
+              className="copy-btn"
+              onClick={copyAllDialogues}
+              title="复制所有对话内容"
+              style={{
+                marginRight: '8px',
+                padding: '4px 8px',
+                fontSize: '12px',
+                backgroundColor: '#007bff',
+                color: 'white',
+                border: 'none',
+                borderRadius: '4px',
+                cursor: 'pointer'
+              }}
+            >
+              📋 复制全部
+            </button>
+            <button 
+              className="close-btn"
+              onClick={stopPlayback}
+              title="关闭播放器"
+            >
+              ✕
+            </button>
+          </div>
         </div>
         
         <div className="player-info">
@@ -447,6 +506,32 @@ const Popup: React.FC = () => {
             ></div>
           </div>
         </div>
+        
+        {/* 当前台词显示 */}
+        {currentDialogue && (
+          <div className="current-dialogue" style={{
+            margin: '12px 0',
+            padding: '12px',
+            backgroundColor: '#f8f9fa',
+            borderRadius: '6px',
+            border: '1px solid #e9ecef'
+          }}>
+            <div style={{
+              fontSize: '12px',
+              color: '#6c757d',
+              marginBottom: '4px'
+            }}>
+              角色{currentDialogue.speaker}
+            </div>
+            <div style={{
+              fontSize: '14px',
+              lineHeight: '1.4',
+              color: '#333'
+            }}>
+              {currentDialogue.text}
+            </div>
+          </div>
+        )}
         
         {currentAudio && (
           <div className="audio-container">
@@ -494,9 +579,9 @@ const Popup: React.FC = () => {
       {/* 内容区域 */}
       <div className="popup-content">
         {state.loading && renderLoading()}
-        {state.error && renderError()}
-        {!state.loading && !state.error && (
+        {!state.loading && (
           <>
+            {state.error && renderError()}
             {renderConfigInfo()}
             {renderActions()}
             {renderPodcastPlayer()}

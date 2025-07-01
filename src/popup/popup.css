@@ -246,6 +246,15 @@
   font-weight: 600;
 }
 
+.header-buttons {
+  display: flex;
+  align-items: center;
+}
+
+.copy-btn:hover {
+  background-color: #0056b3 !important;
+}
+
 .close-btn {
   background: none;
   border: none;

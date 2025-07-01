@@ -365,6 +365,16 @@ const Options: React.FC = () => {
   };
 
   /**
+   * 验证TTS配置是否完整
+   */
+  const validateTTSConfig = (config: TTSConfig): string | null => {
+    if (!config.name?.trim()) return '音色名称不能为空';
+    if (!config.curlCommand?.trim()) return 'cURL命令不能为空';
+    if (!config.curlCommand.includes('{text}')) return 'cURL命令必须包含{text}占位符';
+    return null;
+  };
+
+  /**
    * 测试Agent连接
    */
   const testAgentConnection = async (config: AgentConfig): Promise<void> => {
@@ -498,6 +508,41 @@ const Options: React.FC = () => {
       } catch (error) {
         console.error('保存Agent配置失败:', error);
         showErrorModal('保存失败', '保存AI模型配置时发生错误，请重试。');
+      }
+    }
+  };
+
+  /**
+   * 保存TTS配置
+   */
+  const saveTTSConfig = async (): Promise<void> => {
+    if (state.editingTTS) {
+      // 验证配置
+      const validationError = validateTTSConfig(state.editingTTS);
+      if (validationError) {
+        alert(`保存失败：${validationError}`);
+        return;
+      }
+
+      try {
+        // 更新配置列表
+        const updatedConfigs = state.ttsConfigs.map(config => 
+          config.id === state.editingTTS!.id ? state.editingTTS! : config
+        );
+        
+        // 持久化到本地存储
+        await StorageManager.saveTTSConfigs(updatedConfigs);
+        
+        setState(prev => ({
+          ...prev,
+          ttsConfigs: updatedConfigs,
+          editingTTS: null
+        }));
+        
+        showSuccessModal('保存成功', '语音合成配置已成功保存。');
+      } catch (error) {
+        console.error('保存TTS配置失败:', error);
+        showErrorModal('保存失败', '保存语音合成配置时发生错误，请重试。');
       }
     }
   };
@@ -830,11 +875,11 @@ const Options: React.FC = () => {
         </div>
         
         {/* TTS配置列表 */}
-        <div>
+        <div style={{ marginTop: '24px' }}>
           {state.ttsConfigs.map((config, index) => {
             const isVoiceA = state.settings.voiceAConfigId === config.id;
             const isVoiceB = state.settings.voiceBConfigId === config.id;
-            const roleLabel = isVoiceA ? '(角色A)' : isVoiceB ? '(角色B)' : '';
+            const isAssigned = isVoiceA || isVoiceB;
             
             return (
               <div key={config.id} className="config-item" style={{ 
@@ -842,29 +887,53 @@ const Options: React.FC = () => {
                 borderRadius: '8px', 
                 padding: '16px', 
                 marginBottom: '16px',
-                backgroundColor: (isVoiceA || isVoiceB) ? '#f0f8ff' : '#fff'
+                backgroundColor: isAssigned ? '#f0f8ff' : '#fff'
               }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
                   <h3 style={{ fontSize: '16px', fontWeight: '600', margin: 0 }}>
                     {config.name || `语音配置 ${index + 1}`}
-                    {roleLabel && (
-                      <span style={{ marginLeft: '8px', fontSize: '12px', color: '#007bff' }}>{roleLabel}</span>
+                    {isVoiceA && (
+                      <span style={{ marginLeft: '8px', fontSize: '12px', color: '#28a745', backgroundColor: '#d4edda', padding: '2px 6px', borderRadius: '4px' }}>(角色A)</span>
+                    )}
+                    {isVoiceB && (
+                      <span style={{ marginLeft: '8px', fontSize: '12px', color: '#dc3545', backgroundColor: '#f8d7da', padding: '2px 6px', borderRadius: '4px' }}>(角色B)</span>
                     )}
                   </h3>
                   <div>
                     <button 
                       className="btn btn-small" 
-                      onClick={() => setState(prev => ({ ...prev, editingTTS: config }))}
+                      onClick={() => setState(prev => ({ 
+                        ...prev, 
+                        editingTTS: prev.editingTTS?.id === config.id ? null : config 
+                      }))}
                       style={{ marginRight: '8px' }}
                     >
-                      编辑
+                      {state.editingTTS?.id === config.id ? '收起' : '展开'}
                     </button>
                     {state.ttsConfigs.length > 2 && (
                       <button 
                         className="btn btn-small btn-danger" 
                         onClick={() => deleteTTSConfig(config.id)}
+                        style={{ marginRight: '8px' }}
                       >
                         删除
+                      </button>
+                    )}
+                    {!isVoiceA && (
+                      <button 
+                        className="btn btn-small btn-primary" 
+                        onClick={() => updateSettings('voiceAConfigId', config.id)}
+                        style={{ marginRight: '8px' }}
+                      >
+                        设为角色A
+                      </button>
+                    )}
+                    {!isVoiceB && (
+                      <button 
+                        className="btn btn-small btn-primary" 
+                        onClick={() => updateSettings('voiceBConfigId', config.id)}
+                      >
+                        设为角色B
                       </button>
                     )}
                   </div>
@@ -885,51 +954,28 @@ const Options: React.FC = () => {
                     
                     <div className="form-group">
                       <label className="form-label">cURL命令</label>
-                      <div style={{ position: 'relative' }}>
-                        <textarea
-                          className="form-textarea"
-                          value={state.showApiKeys[config.id] ? config.curlCommand : '•'.repeat(config.curlCommand.length)}
-                          onChange={(e) => {
-                            if (state.showApiKeys[config.id]) {
-                              updateTTSConfig(config.id, 'curlCommand', e.target.value);
-                            }
-                          }}
-                          placeholder="输入完整的cURL命令，使用{text}作为文本占位符"
-                          rows={3}
-                          readOnly={!state.showApiKeys[config.id]}
-                          style={{ 
-                            paddingRight: '40px', 
-                            fontFamily: state.showApiKeys[config.id] ? 'monospace' : 'inherit',
-                            cursor: state.showApiKeys[config.id] ? 'text' : 'default'
-                          }}
-                        />
-                        <button
-                          type="button"
-                          onClick={() => toggleApiKeyVisibility(config.id)}
-                          style={{
-                            position: 'absolute',
-                            right: '8px',
-                            top: '8px',
-                            background: 'none',
-                            border: 'none',
-                            cursor: 'pointer',
-                            fontSize: '16px',
-                            color: '#666',
-                            padding: '4px'
-                          }}
-                          title={state.showApiKeys[config.id] ? '隐藏命令' : '显示命令'}
-                        >
-                          {state.showApiKeys[config.id] ? '🙈' : '👁️'}
-                        </button>
-                      </div>
+                      <textarea
+                        className="form-textarea"
+                        value={config.curlCommand}
+                        onChange={(e) => updateTTSConfig(config.id, 'curlCommand', e.target.value)}
+                        placeholder="输入完整的cURL命令，使用{text}作为文本占位符"
+                        rows={4}
+                        style={{ 
+                          fontFamily: 'monospace',
+                          width: '100%',
+                          resize: 'vertical'
+                        }}
+                      />
                     </div>
                     
-                    <button 
-                      className="btn btn-secondary" 
-                      onClick={() => setState(prev => ({ ...prev, editingTTS: null }))}
-                    >
-                      收起
-                    </button>
+                    <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
+                      <button 
+                        className="btn btn-primary" 
+                        onClick={() => saveTTSConfig()}
+                      >
+                        保存
+                      </button>
+                    </div>
                   </div>
                 )}
               </div>

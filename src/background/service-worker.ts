@@ -204,19 +204,26 @@ class ServiceWorker {
       // 检查解析结果
       if (dialogues.length === 0) {
         console.error('播客脚本解析失败，原始内容:', podcastScript);
-        throw new Error('AI返回的内容格式不正确，无法解析为对话段落。请确保AI返回的是JSON数组格式，包含user和content字段，或者是以"A:"和"B:"开头的对话格式。');
-      }
-      
-      // 生成第一条音频
-      let firstAudio = null;
-      if (dialogues.length > 0) {
-        const firstDialogue = dialogues[0];
-        const voiceConfig = firstDialogue.speaker === 'A' ? ttsConfigs.voiceA : ttsConfigs.voiceB;
-        firstAudio = await this.generateAudio(firstDialogue.text, voiceConfig);
-        console.log('第一条音频生成完成');
+        throw new Error('AI返回的内容格式不正确，无法解析为对话段落。');
       }
       
       const sessionId = 'session_' + Date.now();
+      
+      // 生成第一条音频（如果失败不影响文本内容显示）
+      let firstAudio = null;
+      let audioError = null;
+      
+      try {
+        if (dialogues.length > 0) {
+          const firstDialogue = dialogues[0];
+          const voiceConfig = firstDialogue.speaker === 'A' ? ttsConfigs.voiceA : ttsConfigs.voiceB;
+          firstAudio = await this.generateAudio(firstDialogue.text, voiceConfig);
+          console.log('第一条音频生成完成');
+        }
+      } catch (error) {
+        console.error('音频生成失败:', error);
+        audioError = (error as Error).message;
+      }
       
       // 存储会话数据
       await this.storePodcastSession(sessionId, {
@@ -231,8 +238,10 @@ class ServiceWorker {
         data: {
           sessionId,
           totalDialogues: dialogues.length,
+          dialogues, // 添加对话内容
           firstAudio,
-          status: 'ready'
+          audioError, // 添加音频错误信息
+          status: firstAudio ? 'ready' : 'text_only'
         }
       });
       
@@ -409,47 +418,34 @@ class ServiceWorker {
 
   /**
    * 解析播客脚本为对话段落
-   * 支持JSON数组格式和传统A:/B:格式
+   * 仅支持JSON数组格式
    */
   private parsePodcastScript(script: string): Array<{speaker: string, text: string}> {
     const dialogues: Array<{speaker: string, text: string}> = [];
     
     try {
-      // 尝试解析JSON格式
+      // 解析JSON格式
       const trimmedScript = script.trim();
-      if (trimmedScript.startsWith('[') && trimmedScript.endsWith(']')) {
-        const jsonData = JSON.parse(trimmedScript);
-        if (Array.isArray(jsonData)) {
-          for (const item of jsonData) {
-            if (item && typeof item === 'object' && item.user && item.content) {
-              dialogues.push({
-                speaker: item.user.toString().toUpperCase(),
-                text: item.content.toString().trim()
-              });
-            }
-          }
-          return dialogues;
+      const jsonData = JSON.parse(trimmedScript);
+      
+      if (!Array.isArray(jsonData)) {
+        throw new Error('AI返回的内容不是数组格式');
+      }
+      
+      for (const item of jsonData) {
+        if (item && typeof item === 'object' && item.user && item.content) {
+          dialogues.push({
+            speaker: item.user.toString().toUpperCase(),
+            text: item.content.toString().trim()
+          });
+        } else {
+          console.warn('跳过格式不正确的对话项:', item);
         }
       }
+      
     } catch (error) {
-      console.log('JSON解析失败，尝试传统格式解析:', error);
-    }
-    
-    // 传统A:/B:格式解析
-    const lines = script.split('\n').filter(line => line.trim());
-    for (const line of lines) {
-      const trimmedLine = line.trim();
-      if (trimmedLine.startsWith('A:')) {
-        dialogues.push({
-          speaker: 'A',
-          text: trimmedLine.substring(2).trim()
-        });
-      } else if (trimmedLine.startsWith('B:')) {
-        dialogues.push({
-          speaker: 'B',
-          text: trimmedLine.substring(2).trim()
-        });
-      }
+      console.error('JSON解析失败:', error);
+      throw new Error('AI返回的内容格式不正确，请确保返回的是包含user和content字段的JSON数组格式。');
     }
     
     return dialogues;
@@ -467,7 +463,12 @@ class ServiceWorker {
         throw new Error('无法解析TTS API URL');
       }
       
-      const url = urlMatch[1];
+      let url = urlMatch[1];
+      
+      // 替换URL中的{text}占位符
+      if (url.includes('{text}')) {
+        url = url.replace('{text}', encodeURIComponent(text));
+      }
       
       // 提取headers
       const headers: Record<string, string> = { 'Content-Type': 'application/json' };
@@ -492,12 +493,35 @@ class ServiceWorker {
         }
       }
       
-      // 替换文本内容
-      const finalBody = {
-        ...requestBody,
-        text: text,
-        input: text // 兼容不同的API格式
+      // 替换请求体中的{text}占位符
+      let finalBody = { ...requestBody };
+      
+      // 递归替换对象中的{text}占位符
+      const replaceTextPlaceholders = (obj: any): any => {
+        if (typeof obj === 'string') {
+          return obj.replace(/{text}/g, text);
+        } else if (Array.isArray(obj)) {
+          return obj.map(replaceTextPlaceholders);
+        } else if (obj && typeof obj === 'object') {
+          const result: any = {};
+          for (const [key, value] of Object.entries(obj)) {
+            result[key] = replaceTextPlaceholders(value);
+          }
+          return result;
+        }
+        return obj;
       };
+      
+      finalBody = replaceTextPlaceholders(finalBody);
+      
+      // 如果没有找到{text}占位符，则使用默认字段名
+      if (!JSON.stringify(finalBody).includes(text)) {
+        finalBody = {
+          ...finalBody,
+          text: text,
+          input: text // 兼容不同的API格式
+        };
+      }
       
       const response = await fetch(url, {
         method: 'POST',
@@ -509,9 +533,33 @@ class ServiceWorker {
         throw new Error('TTS API调用失败: ' + response.status);
       }
       
-      // 假设返回的是音频文件的URL或base64数据
-      const result = await response.json();
-      return result.audio_url || result.data || result.url || '';
+      // 检查响应的Content-Type来决定如何处理
+      const contentType = response.headers.get('content-type') || '';
+      
+      if (contentType.includes('audio/') || contentType.includes('application/octet-stream')) {
+        // 直接返回音频数据的情况，转换为base64格式
+        const audioBlob = await response.blob();
+        const arrayBuffer = await audioBlob.arrayBuffer();
+        const uint8Array = new Uint8Array(arrayBuffer);
+        const binaryString = Array.from(uint8Array, byte => String.fromCharCode(byte)).join('');
+        const base64Audio = btoa(binaryString);
+        const mimeType = contentType || 'audio/mpeg';
+        return `data:${mimeType};base64,${base64Audio}`;
+      } else {
+        // JSON响应的情况，包含音频URL或base64数据
+        try {
+          const result = await response.json();
+          return result.audio_url || result.data || result.url || '';
+        } catch (jsonError) {
+          // 如果JSON解析失败，尝试作为文本处理
+          const textResult = await response.text();
+          // 检查是否是base64编码的音频数据
+          if (textResult.startsWith('data:audio/') || textResult.match(/^[A-Za-z0-9+/]+=*$/)) {
+            return textResult;
+          }
+          throw new Error('无法解析TTS API响应: ' + textResult.substring(0, 100));
+        }
+      }
       
     } catch (error) {
       console.error('音频生成失败:', error);
