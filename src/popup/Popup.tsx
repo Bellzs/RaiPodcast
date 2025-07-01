@@ -576,6 +576,18 @@ const Popup: React.FC = () => {
       
       await navigator.clipboard.writeText(contentToCopy);
       console.log('页面内容已复制到剪贴板');
+      
+      // 显示复制成功提示
+      const button = document.querySelector('.page-info .copy-btn') as HTMLElement;
+      if (button) {
+        const originalText = button.textContent;
+        button.textContent = '✅ 已复制';
+        button.style.backgroundColor = '#28a745';
+        setTimeout(() => {
+          button.textContent = originalText;
+          button.style.backgroundColor = '';
+        }, 2000);
+      }
     } catch (error) {
       console.error('复制失败:', error);
     }
@@ -627,7 +639,7 @@ const Popup: React.FC = () => {
             onClick={copyPageContent}
             title="复制标题、内容和图片链接"
           >
-            ⎘
+            📄
           </button>
         </div>
         <div className="page-content">
@@ -697,7 +709,7 @@ const Popup: React.FC = () => {
       await navigator.clipboard.writeText(dialogueText);
       
       // 显示复制成功提示
-      const button = document.querySelector('.copy-btn') as HTMLElement;
+      const button = document.querySelector('.podcast-player .copy-btn') as HTMLElement;
       if (button) {
         const originalText = button.textContent;
         button.textContent = '✅ 已复制';
@@ -732,7 +744,7 @@ const Popup: React.FC = () => {
               title="复制全部对话内容"
               style={{ marginRight: '8px' }}
             >
-              📋
+              📄
             </button>
             <button 
               className="close-btn"

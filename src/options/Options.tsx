@@ -311,26 +311,16 @@ const Options: React.FC = () => {
   };
 
   /**
-   * 更新TTS配置
+   * 更新TTS配置（仅内存，不保存）
    */
-  const updateTTSConfig = async (id: string, field: keyof TTSConfig, value: string): Promise<void> => {
-    try {
-      const updatedConfigs = state.ttsConfigs.map(config => 
+  const updateTTSConfig = (id: string, field: keyof TTSConfig, value: string): void => {
+    setState(prev => ({
+      ...prev,
+      ttsConfigs: prev.ttsConfigs.map(config => 
         config.id === id ? { ...config, [field]: value } : config
-      );
-      
-      // 持久化到本地存储
-      await StorageManager.saveTTSConfigs(updatedConfigs);
-      
-      setState(prev => ({
-        ...prev,
-        ttsConfigs: updatedConfigs,
-        editingTTS: prev.editingTTS?.id === id ? { ...prev.editingTTS, [field]: value } : prev.editingTTS
-      }));
-    } catch (error) {
-      console.error('更新TTS配置失败:', error);
-      showErrorModal('更新失败', '更新TTS配置时发生错误，请重试。');
-    }
+      ),
+      editingTTS: prev.editingTTS?.id === id ? { ...prev.editingTTS, [field]: value } : prev.editingTTS
+    }));
   };
 
   /**
