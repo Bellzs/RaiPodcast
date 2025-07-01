@@ -67,6 +67,17 @@
   line-height: 1.4;
 }
 
+.error-content {
+  word-wrap: break-word;
+  word-break: break-word;
+}
+
+.error-content.scrollable {
+  max-height: 120px;
+  overflow-y: auto;
+  padding-right: 20px; /* 为关闭按钮留出空间 */
+}
+
 .tts-error {
   position: relative;
   background: #fff3cd;
@@ -112,12 +123,20 @@
 }
 
 .page-title {
-  font-size: 16px;
+  font-size: 14px;
   font-weight: 600;
-  color: #333;
+  color: white;
   margin: 0;
   line-height: 1.4;
   flex: 1;
+}
+
+.page-title-header {
+  background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+  color: white;
+  padding: 8px 12px;
+  border-radius: 6px;
+  margin-bottom: 8px;
 }
 
 .page-content {

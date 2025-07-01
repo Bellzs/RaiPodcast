@@ -11,6 +11,7 @@ class AudioSessionManager {
   private sessionData = new Map<string, PodcastSession>();
   private generatingAudio = new Set<string>(); // 正在生成的音频标识
   private ttsConfigs = new Map<string, any>(); // sessionId -> ttsConfigs
+  private notifyErrorCallback?: (sessionId: string, index: number, errorMessage: string) => void;
 
   /**
    * 获取音频
@@ -65,7 +66,16 @@ class AudioSessionManager {
       
     } catch (error) {
       this.generatingAudio.delete(cacheKey);
-      console.error(`音频生成失败: ${cacheKey}`, error);
+      console.error(`[AudioSessionManager] 音频生成失败: ${cacheKey}`, error);
+      
+      // 通知错误
+      if (this.notifyErrorCallback) {
+        console.log(`[AudioSessionManager] 调用错误通知回调: sessionId=${sessionId}, index=${index}`);
+        this.notifyErrorCallback(sessionId, index, (error as Error).message);
+      } else {
+        console.warn(`[AudioSessionManager] 错误通知回调未设置`);
+      }
+      
       return {
         success: false,
         error: `音频生成失败: ${(error as Error).message}`
@@ -101,7 +111,15 @@ class AudioSessionManager {
       console.log(`预加载完成: ${cacheKey}`);
     } catch (error) {
       this.generatingAudio.delete(cacheKey);
-      console.error(`预加载失败: ${cacheKey}`, error);
+      console.error(`[AudioSessionManager] 预加载音频失败: ${cacheKey}`, error);
+      
+      // 通知错误
+      if (this.notifyErrorCallback) {
+        console.log(`[AudioSessionManager] 预加载错误，调用错误通知回调: sessionId=${sessionId}, index=${nextIndex}`);
+        this.notifyErrorCallback(sessionId, nextIndex, (error as Error).message);
+      } else {
+        console.warn(`[AudioSessionManager] 预加载错误，但错误通知回调未设置`);
+      }
     }
   }
 
@@ -229,15 +247,29 @@ class AudioSessionManager {
       const contentType = response.headers.get('content-type') || '';
       
       if (contentType.includes('application/json')) {
-        // JSON响应通常表示错误信息
+        // JSON响应通常表示错误信息，先克隆响应以备后用
+        const responseClone = response.clone();
         try {
           const errorResult = await response.json();
           const errorMessage = errorResult.error || errorResult.message || errorResult.detail || JSON.stringify(errorResult);
           throw new Error(`TTS服务返回错误: ${errorMessage}`);
         } catch (jsonError) {
-          // 如果JSON解析失败，说明响应体可能不是有效的JSON
-          // 此时response的body已经被消费，无法再次读取
-          throw new Error(`TTS服务返回无效的JSON响应`);
+          // 如果JSON解析失败，使用克隆的响应获取原始文本
+          let rawResponse = '';
+          try {
+            rawResponse = await responseClone.text();
+          } catch (e) {
+            // 如果无法读取响应文本，显示基本错误信息
+            rawResponse = `HTTP ${response.status} ${response.statusText}`;
+          }
+          
+          // 限制显示长度，避免过长的响应内容
+          const maxLength = 500;
+          const displayResponse = rawResponse.length > maxLength 
+            ? rawResponse.substring(0, maxLength) + '...（内容已截断）'
+            : rawResponse;
+            
+          throw new Error(`TTS服务返回无效的JSON响应。状态码: ${response.status}，原始响应: ${displayResponse}`);
         }
       } else if (contentType.includes('audio/') || contentType.includes('application/octet-stream')) {
         // 直接返回音频数据的情况，转换为base64格式
@@ -301,6 +333,13 @@ class AudioSessionManager {
   }
 
   /**
+   * 设置错误通知回调
+   */
+  setNotifyErrorCallback(callback: (sessionId: string, index: number, errorMessage: string) => void): void {
+    this.notifyErrorCallback = callback;
+  }
+
+  /**
    * 清理会话缓存
    */
   clearSessionCache(sessionId: string): void {
@@ -334,6 +373,8 @@ class ServiceWorker {
 
   constructor() {
     this.audioManager = new AudioSessionManager();
+    // 设置错误通知回调
+    this.audioManager.setNotifyErrorCallback(this.notifyTTSError.bind(this));
     this.init();
   }
 
@@ -968,16 +1009,27 @@ class ServiceWorker {
    * 通知前端TTS错误
    */
   private notifyTTSError(sessionId: string, index: number, errorMessage: string): void {
+    console.log(`[TTS错误通知] 开始发送TTS错误通知:`);
+    console.log(`[TTS错误通知] sessionId: ${sessionId}`);
+    console.log(`[TTS错误通知] index: ${index}`);
+    console.log(`[TTS错误通知] errorMessage: ${errorMessage}`);
+    
+    const message = {
+      type: MESSAGE_TYPES.TTS_ERROR,
+      data: {
+        sessionId,
+        index,
+        error: errorMessage
+      }
+    };
+    
+    console.log(`[TTS错误通知] 发送消息:`, message);
+    
     try {
-      chrome.runtime.sendMessage({
-        type: MESSAGE_TYPES.TTS_ERROR,
-        data: {
-          sessionId,
-          index,
-          error: errorMessage
-        }
+      chrome.runtime.sendMessage(message).then(() => {
+        console.log(`[TTS错误通知] TTS错误消息发送成功`);
       }).catch(error => {
-        console.log('发送TTS错误消息失败（popup可能未打开）:', error.message);
+        console.error(`[TTS错误通知] 发送TTS错误消息失败:`, error);
       });
     } catch (error) {
       console.error('通知前端TTS错误失败:', error);
@@ -1273,7 +1325,8 @@ class ServiceWorker {
         this.notifyTTSError(sessionId, index, response.error || '音频生成失败');
       }
     } catch (error) {
-      console.error('异步生成音频失败:', error);
+      console.error(`[ServiceWorker] 异步生成音频失败: ${sessionId}:${index}`, error);
+      console.log(`[ServiceWorker] 准备通知TTS错误: sessionId=${sessionId}, index=${index}`);
       
       // 通知前端TTS错误
       this.notifyTTSError(sessionId, index, (error as Error).message || '音频生成异常');

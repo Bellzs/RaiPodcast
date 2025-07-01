@@ -49,7 +49,7 @@ const Popup: React.FC = () => {
   // 监听来自service worker的消息
   useEffect(() => {
     const messageListener = (message: any) => {
-      console.log('Popup收到消息:', message);
+      console.log('[Popup] 收到消息:', message.type, message);
       
       if (message.type === MESSAGE_TYPES.AUDIO_READY) {
         const { sessionId, index, audio } = message.data;
@@ -86,13 +86,18 @@ const Popup: React.FC = () => {
       
       if (message.type === MESSAGE_TYPES.TTS_ERROR) {
         const { sessionId, index, error } = message.data;
-        console.log('处理TTS_ERROR消息:', { sessionId, index, error });
+        console.log('[Popup] 收到TTS_ERROR消息:', { sessionId, index, error });
+        console.log('[Popup] 当前会话ID:', state.podcastSession?.sessionId);
+        console.log('[Popup] 消息会话ID匹配:', state.podcastSession?.sessionId === sessionId);
         
         // 显示TTS错误信息，使用专门的ttsError字段
-        setState(prev => ({
-          ...prev,
-          ttsError: `第${index + 1}条音频生成失败: ${error}`
-        }));
+        setState(prev => {
+          console.log('[Popup] 更新TTS错误状态:', `第${index + 1}条音频生成失败: ${error}`);
+          return {
+            ...prev,
+            ttsError: `第${index + 1}条音频生成失败: ${error}`
+          };
+        });
       }
     };
 
@@ -530,12 +535,16 @@ const Popup: React.FC = () => {
     <>
       {state.error && (
         <div className="error">
-          {state.error}
+          <div className="error-content">
+            {state.error}
+          </div>
         </div>
       )}
       {state.ttsError && (
         <div className="error tts-error">
-          {state.ttsError}
+          <div className="error-content scrollable">
+            {state.ttsError}
+          </div>
           <button 
             className="error-close-btn"
             onClick={() => setState(prev => ({ ...prev, ttsError: null }))}
@@ -611,7 +620,7 @@ const Popup: React.FC = () => {
 
     return (
       <div className="page-info">
-        <div className="info-header">
+        <div className="info-header page-title-header">
           <h3 className="page-title">{state.pageContent.title}</h3>
           <button 
             className="copy-btn"
