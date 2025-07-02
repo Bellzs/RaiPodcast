@@ -26,29 +26,51 @@ RaiPodcast 是一款创新的浏览器（Chromium内核）扩展，能够智能�
 
 - ✅ **Chrome** (推荐)
 - ✅ **Microsoft Edge**
-- ✅ **Brave** 浏览器
+- ✅ **360** 浏览器
 - ✅ **其他基于Chromium的浏览器**
 
 ### 安装步骤
 
-#### 方式一：下载安装包（推荐）
+#### 方式一：CRX 文件安装（推荐）
 
-1. **下载扩展包**
+> ⚠️ **重要提示**：Chrome 由于安全策略可能会导致 `CRX_REQUIRED_PROOF_MISSING` 错误，建议改用 **其它浏览器**，或在 Chrome 快捷方式目标后添加 `--enable-easy-off-store-extension-install` 参数，或使用方式二安装。
+
+1. **下载CRX文件**
    - 访问 [GitHub Releases](https://github.com/Bellzs/RaiPodcast/releases)
-   - 下载最新版本的 `.crx` 文件
-
+   - 下载最新版本的压缩包
+   - 解压获得`.crx`文件
+   
 2. **安装到浏览器**
+   - 打开浏览器（推荐 Edge 或已修改参数的 Chrome）
+   - 访问扩展管理页面：[chrome://extensions/](chrome://extensions/) 或 [edge://extensions/](edge://extensions/)
+   - 开启"开发者模式"
+   - 将 `.crx` 文件拖拽到页面中，确认安装
+
+#### 方式二：插件文件夹 模式安装
+
+如果 CRX 文件安装失败，可以使用此方式：
+
+1. **下载插件文件夹**
+   - 访问 [GitHub Releases](https://github.com/Bellzs/RaiPodcast/releases)
+   - 下载最新版本的压缩包
+   - 解压获得其中的`dist`文件夹
+3. **安装到浏览器**
    - 打开 Chrome 浏览器
    - 访问 [chrome://extensions/](chrome://extensions/)
    - 开启右上角的"开发者模式"
-   - 将下载的 `.crx` 文件拖拽到页面中
-   - 确认安装即可
+   - 点击"加载已解压的扩展程序"
+   - 选择第一步的 `dist` 文件夹
+   - 扩展成功加载后，工具栏会显示 RaiPodcast 图标
 
-#### 方式二：从源码安装
+> ⚠️ **注意**：Chrome 从 73 版本开始加强了扩展安装的安全限制，如果 CRX 安装失败，请使用方式二。
+
+#### 方式三：开发模式
+
+适用于开发者或需要修改代码的用户：
 
 1. **克隆项目**
    ```bash
-   git clone https://github.com/your-username/RaiPodcast.git
+   git clone https://github.com/Bellzs/RaiPodcast.git
    cd RaiPodcast
    ```
 
@@ -57,11 +79,19 @@ RaiPodcast 是一款创新的浏览器（Chromium内核）扩展，能够智能�
    npm install
    ```
 
-3. **构建扩展**
+3. **启动开发模式**
+   
    ```bash
+   # 编译代码生成dist文件夹
    npm run build
+   
+   # 或启动开发模式（文件变化时自动重新构建）
+   npm run dev
+   
+   # 或使用监听模式
+   npm run watch
    ```
-
+   
 4. **加载到浏览器**
    - 打开 Chrome 浏览器
    - 访问 `chrome://extensions/`
@@ -70,15 +100,7 @@ RaiPodcast 是一款创新的浏览器（Chromium内核）扩展，能够智能�
    - 选择项目根目录下的 `dist` 文件夹
    - 扩展成功加载后，工具栏会显示 RaiPodcast 图标
 
-#### 方式三：开发模式
-
-```bash
-# 启动开发模式（文件变化时自动重新构建）
-npm run dev
-
-# 或使用监听模式
-npm run watch
-```
+> 💡 **提示**：开发模式下，修改代码后需要在扩展管理页面点击"重新加载"按钮来更新扩展。
 
 ## 📚 使用指南
 
