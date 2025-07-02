@@ -238,25 +238,21 @@ body {
 }
 
 .generate-btn.generating {
-  animation: colorCycle 4s infinite;
+  background: linear-gradient(90deg, #667eea 0%, #764ba2 25%, #f093fb 50%, #4facfe 75%, #43e97b 100%);
+  background-size: 400% 100%;
+  animation: slideGradient 3s ease-in-out infinite;
   cursor: not-allowed;
 }
 
-@keyframes colorCycle {
+@keyframes slideGradient {
   0% {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  }
-  25% {
-    background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+    background-position: 0% 50%;
   }
   50% {
-    background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
-  }
-  75% {
-    background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+    background-position: 100% 50%;
   }
   100% {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background-position: 0% 50%;
   }
 }
 
