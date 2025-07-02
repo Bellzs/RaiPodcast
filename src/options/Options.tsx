@@ -434,6 +434,205 @@ const Options: React.FC = () => {
   };
 
   /**
+   * 测试TTS连接
+   */
+  const testTTSConnection = async (config: TTSConfig): Promise<void> => {
+    setState(prev => ({ ...prev, testing: true }));
+    
+    try {
+      const validationError = validateTTSConfig(config);
+      if (validationError) {
+        showErrorModal('配置验证失败', validationError);
+        return;
+      }
+
+      // 解析cURL命令
+      const curlCommand = config.curlCommand.replace('{text}', '这是一个测试语音合成');
+      
+      // 简单解析cURL命令获取URL、方法和headers
+      const urlMatch = curlCommand.match(/curl\s+(?:-X\s+\w+\s+)?['"]?([^'"\s]+)['"]?/);
+      const methodMatch = curlCommand.match(/-X\s+(\w+)/);
+      const headerMatches = curlCommand.matchAll(/-H\s+['"]([^'"]+)['"]?/g);
+      const dataMatch = curlCommand.match(/--data(?:-raw)?\s+['"]([^'"]+)['"]?/);
+      
+      if (!urlMatch) {
+        throw new Error('无法解析cURL命令中的URL');
+      }
+      
+      const url = urlMatch[1];
+      const method = methodMatch ? methodMatch[1].toUpperCase() : 'POST';
+      const headers: Record<string, string> = {};
+      
+      for (const match of headerMatches) {
+        const [key, value] = match[1].split(':').map(s => s.trim());
+        if (key && value) {
+          headers[key] = value;
+        }
+      }
+      
+      const requestOptions: RequestInit = {
+        method,
+        headers
+      };
+      
+      if (dataMatch && method !== 'GET') {
+        requestOptions.body = dataMatch[1];
+      }
+
+      const response = await fetch(url, requestOptions);
+      
+      const contentType = response.headers.get('content-type') || '';
+      
+      if (contentType.includes('audio/')) {
+        // 成功返回音频文件
+        const audioBlob = await response.blob();
+        const audioSize = (audioBlob.size / 1024).toFixed(2);
+        const audioUrl = URL.createObjectURL(audioBlob);
+        
+        // 创建包含音频预览的内容
+        const audioContent = (
+          <div>
+            <div className="test-result-item">
+              <span className="test-result-label">音色名称：</span>
+              <span className="test-result-value">{config.name}</span>
+            </div>
+            <div className="test-result-item">
+              <span className="test-result-label">合成状态：</span>
+              <span className="test-result-value" style={{color: '#52c41a', fontWeight: 500}}>✅ 语音合成成功</span>
+            </div>
+            <div className="test-result-item">
+              <span className="test-result-label">音频信息：</span>
+              <span className="test-result-value">大小: {audioSize} KB | 类型: {contentType}</span>
+            </div>
+            <div className="test-result-item" style={{marginTop: '12px'}}>
+              <span className="test-result-label">音频预览：</span>
+            </div>
+            <div style={{marginTop: '8px', padding: '12px', background: '#f8f9fa', borderRadius: '6px', border: '1px solid #e9ecef'}}>
+              <audio 
+                controls 
+                style={{width: '100%', height: '40px'}} 
+                onLoadedData={() => console.log('音频加载完成')}
+                onError={(e) => console.error('音频加载失败:', e)}
+              >
+                <source src={audioUrl} type={contentType} />
+                您的浏览器不支持音频播放
+              </audio>
+              <div style={{fontSize: '12px', color: '#6c757d', marginTop: '6px', textAlign: 'center'}}>
+                💡 点击播放按钮试听合成效果
+              </div>
+            </div>
+          </div>
+        );
+        
+        setState(prev => ({
+          ...prev,
+          modal: {
+            type: 'test-connection',
+            title: 'TTS 测试成功',
+            content: audioContent,
+            onConfirm: async () => {
+              URL.revokeObjectURL(audioUrl); // 清理音频URL
+              closeModal();
+              await saveTTSConfig();
+            },
+            confirmText: '保存配置',
+            showCancel: true,
+            onCancel: () => {
+              URL.revokeObjectURL(audioUrl); // 清理音频URL
+              closeModal();
+            }
+          }
+        }));
+      } else if (contentType.includes('application/json')) {
+          // 返回JSON，可能是错误信息
+          const jsonData = await response.json();
+          if (response.ok) {
+            const jsonContent = (
+              <div>
+                <div className="test-result-item">
+                  <span className="test-result-label">音色名称：</span>
+                  <span className="test-result-value">{config.name}</span>
+                </div>
+                <div className="test-result-item">
+                  <span className="test-result-label">连接状态：</span>
+                  <span className="test-result-value" style={{color: '#52c41a', fontWeight: 500}}>✅ 连接成功</span>
+                </div>
+                <div className="test-result-item">
+                  <span className="test-result-label">响应内容：</span>
+                </div>
+                <div className="test-result-value" style={{marginTop: '8px', padding: '8px', background: '#f0f0f0', borderRadius: '4px', fontSize: '13px', fontFamily: 'monospace', whiteSpace: 'pre-wrap'}}>
+                  {JSON.stringify(jsonData, null, 2)}
+                </div>
+              </div>
+            );
+            
+            setState(prev => ({
+              ...prev,
+              modal: {
+                type: 'test-connection',
+                title: 'TTS 测试成功',
+                content: jsonContent,
+                onConfirm: async () => {
+                  closeModal();
+                  await saveTTSConfig();
+                },
+                confirmText: '保存配置',
+                showCancel: true
+              }
+            }));
+          } else {
+            throw new Error(`API错误: ${JSON.stringify(jsonData, null, 2)}`);
+          }
+        } else {
+          // 其他类型的响应
+          const textData = await response.text();
+          if (response.ok) {
+            const textContent = (
+              <div>
+                <div className="test-result-item">
+                  <span className="test-result-label">音色名称：</span>
+                  <span className="test-result-value">{config.name}</span>
+                </div>
+                <div className="test-result-item">
+                  <span className="test-result-label">连接状态：</span>
+                  <span className="test-result-value" style={{color: '#52c41a', fontWeight: 500}}>✅ 连接成功</span>
+                </div>
+                <div className="test-result-item">
+                  <span className="test-result-label">响应内容：</span>
+                </div>
+                <div className="test-result-value" style={{marginTop: '8px', padding: '8px', background: '#f0f0f0', borderRadius: '4px', fontSize: '13px'}}>
+                  {textData}
+                </div>
+              </div>
+            );
+            
+            setState(prev => ({
+              ...prev,
+              modal: {
+                type: 'test-connection',
+                title: 'TTS 测试成功',
+                content: textContent,
+                onConfirm: async () => {
+                  closeModal();
+                  await saveTTSConfig();
+                },
+                confirmText: '保存配置',
+                showCancel: true
+              }
+            }));
+          } else {
+            throw new Error(`HTTP ${response.status}: ${textData}`);
+          }
+        }
+    } catch (error) {
+      console.error('测试TTS连接失败:', error);
+      showErrorModal('TTS测试失败', `音色：${config.name}\n错误：${error instanceof Error ? error.message : '未知错误'}`);
+    } finally {
+      setState(prev => ({ ...prev, testing: false }));
+    }
+  };
+
+  /**
    * 应用Agent配置（设为默认）
    */
   const applyAgentConfig = async (configId: string): Promise<void> => {
@@ -1106,6 +1305,13 @@ const Options: React.FC = () => {
                     </div>
                     
                     <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
+                      <button 
+                        className="btn btn-secondary" 
+                        onClick={() => testTTSConnection(config)}
+                        disabled={state.testing}
+                      >
+                        {state.testing ? '测试中...' : '测试连接'}
+                      </button>
                       <button 
                         className="btn btn-primary" 
                         onClick={() => saveTTSConfig()}
