@@ -609,12 +609,104 @@ const Options: React.FC = () => {
   };
 
   /**
+   * 导出配置到文件
+   */
+  const exportConfig = (): void => {
+    try {
+      const configData = {
+        agentConfigs: state.agentConfigs,
+        ttsConfigs: state.ttsConfigs,
+        settings: state.settings,
+        exportTime: new Date().toISOString(),
+        version: '1.0'
+      };
+      
+      const dataStr = JSON.stringify(configData, null, 2);
+      const dataBlob = new Blob([dataStr], { type: 'application/json' });
+      
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(dataBlob);
+      link.download = `raipodcast-config-${new Date().toISOString().split('T')[0]}.json`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      showSuccessModal('导出成功', '配置文件已成功导出到下载文件夹。');
+    } catch (error) {
+      console.error('导出配置失败:', error);
+      showErrorModal('导出失败', '导出配置时发生错误，请重试。');
+    }
+  };
+
+  /**
+   * 从文件导入配置
+   */
+  const importConfig = (event: React.ChangeEvent<HTMLInputElement>): void => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const configData = JSON.parse(e.target?.result as string);
+        
+        // 验证配置数据格式
+        if (!configData.agentConfigs || !configData.ttsConfigs || !configData.settings) {
+          throw new Error('配置文件格式不正确');
+        }
+        
+        // 显示确认弹窗
+        const content = (
+          <div>
+            <p>即将导入以下配置：</p>
+            <ul style={{ textAlign: 'left', margin: '8px 0' }}>
+              <li>AI模型配置：{configData.agentConfigs.length} 个</li>
+              <li>语音合成配置：{configData.ttsConfigs.length} 个</li>
+              <li>导出时间：{configData.exportTime ? new Date(configData.exportTime).toLocaleString() : '未知'}</li>
+            </ul>
+            <p style={{ color: '#dc3545', fontSize: '13px' }}>⚠️ 导入将覆盖当前所有配置，请确认操作。</p>
+          </div>
+        );
+        
+        setState(prev => ({
+          ...prev,
+          modal: {
+            type: 'success',
+            title: '确认导入配置',
+            content,
+            onConfirm: () => {
+              setState(prev => ({
+                ...prev,
+                agentConfigs: configData.agentConfigs,
+                ttsConfigs: configData.ttsConfigs,
+                settings: configData.settings,
+                modal: null
+              }));
+              showSuccessModal('导入成功', '配置已成功导入，请记得保存配置。');
+            },
+            confirmText: '确认导入',
+            showCancel: true
+          }
+        }));
+        
+      } catch (error) {
+        console.error('导入配置失败:', error);
+        showErrorModal('导入失败', '配置文件格式错误或损坏，请检查文件。');
+      }
+    };
+    
+    reader.readAsText(file);
+    // 清空input值，允许重复选择同一文件
+    event.target.value = '';
+  };
+
+  /**
    * 渲染Agent配置部分
    */
   const renderAgentConfig = (): JSX.Element => {
     return (
       <div className="config-section">
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0px' }}>
           <div>
             <h2 className="section-title">
               <span className="section-icon">🤖</span>
@@ -627,6 +719,24 @@ const Options: React.FC = () => {
           <button className="btn btn-secondary" onClick={addAgentConfig}>
             添加模型
           </button>
+        </div>
+        
+        {/* AI模型推荐提示 */}
+          <div style={{ 
+            marginBottom: '8px', 
+            padding: '8px 12px', 
+            backgroundColor: '#e8f5e8', 
+            border: '1px solid #c3e6c3', 
+            borderRadius: '4px',
+            fontSize: '12px',
+            color: '#2d5a2d',
+            lineHeight: '1.4'
+          }}>
+          <span style={{ fontWeight: '600' }}>💡 提醒：</span>
+          支持通义千问、DeepSeek、智普AI等OpenAI风格接口，智普AI提供<b>免费</b>的基础大模型（效果一般）
+          <a href="https://open.bigmodel.cn/pricing" target="_blank" rel="noopener noreferrer" style={{ color: '#1976d2', textDecoration: 'none', marginLeft: '4px' }}>
+            查看详情 ↗
+          </a>
         </div>
         
         {/* 默认模型选择 */}
@@ -819,7 +929,7 @@ const Options: React.FC = () => {
   const renderTTSConfig = (): JSX.Element => {
     return (
       <div className="config-section">
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0px' }}>
           <div>
             <h2 className="section-title">
               <span className="section-icon">🎵</span>
@@ -832,6 +942,26 @@ const Options: React.FC = () => {
           <button className="btn btn-secondary" onClick={addTTSConfig}>
             添加音色
           </button>
+        </div>
+        
+        {/* TTS推荐提示 */}
+          <div style={{ 
+            marginBottom: '8px', 
+            padding: '8px 12px', 
+            backgroundColor: '#fff3cd', 
+            border: '1px solid #ffeaa7', 
+            borderRadius: '4px',
+            fontSize: '12px',
+            color: '#856404',
+            lineHeight: '1.4'
+          }}>
+          <div>
+            <span style={{ fontWeight: '600' }}>💡 提醒：</span>
+            明伟数据提供<b>免费</b>TTS API（第三方服务，仅供参考）
+            <a href="https://api.tjit.net/doc/103" target="_blank" rel="noopener noreferrer" style={{ color: '#1976d2', textDecoration: 'none', marginLeft: '4px' }}>
+              查看文档 ↗
+            </a>
+          </div>
         </div>
         
         {/* 角色音色选择 */}
@@ -957,6 +1087,23 @@ const Options: React.FC = () => {
                           resize: 'vertical'
                         }}
                       />
+                      <div style={{ 
+                        marginTop: '8px', 
+                        padding: '12px', 
+                        backgroundColor: '#f8f9fa', 
+                        border: '1px solid #e9ecef', 
+                        borderRadius: '4px',
+                        fontSize: '13px',
+                        color: '#6c757d'
+                      }}>
+                        <div style={{ fontWeight: '600', marginBottom: '6px', color: '#495057' }}>📋 cURL要求说明：</div>
+                        <div style={{ marginBottom: '4px' }}>
+                          <strong>✅ 合成成功：</strong>返回二进制语音文件，Content-type: audio/mp3
+                        </div>
+                        <div>
+                          <strong>❌ 合成错误：</strong>返回JSON结果，Content-type: application/json
+                        </div>
+                      </div>
                     </div>
                     
                     <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
@@ -989,14 +1136,39 @@ const Options: React.FC = () => {
   return (
     <div className="options-container">
       {/* 头部 */}
-      <div className="options-header">
-        <h1 className="options-title">
-          <img src="../assets/icon-128.png" alt="RaiPodcast Logo" className="options-logo" />
-          RaiPodcast 设置
-        </h1>
-        <p className="options-description">
-          配置AI模型和TTS服务，开始您的播客之旅
-        </p>
+      <div className="options-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div>
+          <h1 className="options-title">
+            <img src="../assets/icon-128.png" alt="RaiPodcast Logo" className="options-logo" />
+            RaiPodcast 设置
+          </h1>
+          <p className="options-description">
+            配置AI模型和TTS服务，开始您的播客之旅
+          </p>
+        </div>
+        <div style={{ display: 'flex', gap: '8px' }}>
+          <button 
+            className="btn btn-secondary"
+            onClick={exportConfig}
+            title="导出当前配置到文件"
+          >
+            📤 导出配置
+          </button>
+          <button 
+            className="btn btn-secondary"
+            onClick={() => document.getElementById('import-config-input')?.click()}
+            title="从文件导入配置"
+          >
+            📥 导入配置
+          </button>
+          <input
+            id="import-config-input"
+            type="file"
+            accept=".json"
+            style={{ display: 'none' }}
+            onChange={importConfig}
+          />
+        </div>
       </div>
 
       {/* 内容区域 */}
