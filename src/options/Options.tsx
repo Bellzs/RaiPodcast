@@ -384,7 +384,8 @@ const Options: React.FC = () => {
           role: 'user',
           content: '请回复：测试连接成功'
         }],
-        stream: false
+        stream: false,
+        "enable_thinking": false,
       };
 
       const response = await fetch(config.apiUrl, {

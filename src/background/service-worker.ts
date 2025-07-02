@@ -870,7 +870,8 @@ class ServiceWorker {
     // 构建请求体
     const requestBody: any = {
       model: agentConfig.model,
-      messages: messages
+      messages: messages,
+      enable_thinking: false,
     };
     
     // 添加可选参数

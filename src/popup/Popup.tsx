@@ -197,11 +197,11 @@ const Popup: React.FC = () => {
       ]);
       
       if (!agentConfig) {
-        throw new Error('请先配置AI模型');
+        throw new Error('点击下方设置-请先配置AI模型');
       }
       
       if (!ttsConfigs.voiceA || !ttsConfigs.voiceB) {
-        throw new Error('请先配置角色A和角色B的语音');
+        throw new Error('点击下方设置-请先配置角色A和角色B的语音');
       }
       
       // 发送生成播客请求
