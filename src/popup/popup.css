@@ -569,6 +569,97 @@ body {
   white-space: nowrap;
 }
 
+/* 支持区域样式 */
+.support-section {
+  margin-top: 16px;
+  padding: 12px;
+  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+  border-radius: 8px;
+  border: 1px solid #dee2e6;
+}
+
+.support-item {
+  display: flex;
+  align-items: flex-start;
+  margin-bottom: 16px;
+  padding: 12px;
+  background: white;
+  border-radius: 6px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.support-item.sponsor-support {
+  flex-direction: column;
+  align-items: stretch;
+}
+
+.sponsor-header {
+  display: flex;
+  align-items: flex-start;
+  margin-bottom: 12px;
+}
+
+.support-item:last-child {
+  margin-bottom: 0;
+}
+
+.support-item:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+.support-icon {
+  font-size: 24px;
+  margin-right: 12px;
+  flex-shrink: 0;
+}
+
+.support-content {
+  flex: 1;
+}
+
+.support-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 4px;
+}
+
+.support-link {
+  display: inline-block;
+  padding: 6px 12px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  text-decoration: none;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.support-link:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(102, 126, 234, 0.3);
+  text-decoration: none;
+  color: white;
+}
+
+.qr-code-container {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  margin-top: 8px;
+}
+
+.qr-code {
+  width: 100%;
+  height: auto;
+  border-radius: 4px;
+  border: 1px solid #e9ecef;
+  object-fit: contain;
+}
+
 /* 响应式布局 */
 @media (max-width: 400px) {
   .popup-container {
@@ -604,5 +695,25 @@ body {
   .image-thumbnail {
     width: 50px;
     height: 50px;
+  }
+  
+  .support-section {
+    margin-top: 12px;
+    padding: 8px;
+  }
+  
+  .support-item {
+    padding: 8px;
+    margin-bottom: 12px;
+  }
+  
+  .support-icon {
+    font-size: 20px;
+    margin-right: 8px;
+  }
+  
+  .qr-code {
+    width: 100%;
+    height: auto;
   }
 }

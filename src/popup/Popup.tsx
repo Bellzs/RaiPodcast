@@ -754,6 +754,47 @@ const Popup: React.FC = () => {
   };
 
   /**
+   * 渲染支持区域
+   */
+  const renderSupportSection = (): JSX.Element => {
+    return (
+      <div className="support-section">
+        <div className="support-item github-support">
+          <div className="support-icon">⭐</div>
+          <div className="support-content">
+            <div className="support-title">喜欢这个项目？</div>
+            <a 
+              href="https://github.com/Bellzs/RaiPodcast" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="support-link"
+            >
+              🚀 GitHub Star
+            </a>
+          </div>
+        </div>
+        
+        <div className="support-item sponsor-support">
+          <div className="sponsor-header">
+            <div className="support-icon">💝</div>
+            <div className="support-content">
+              <div className="support-title">支持开发者</div>
+              <div className="support-description">赏ta一杯蜜雪冰城~</div>
+            </div>
+          </div>
+          <div className="qr-code-container">
+            <img 
+              src="../assets/alipay.png" 
+              alt="支付宝赞助二维码" 
+              className="qr-code"
+            />
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  /**
    * 复制所有对话内容
    */
   const copyAllDialogues = async (): Promise<void> => {
@@ -929,6 +970,7 @@ const Popup: React.FC = () => {
             {renderPodcastPlayer()}
             {renderPageInfo()}
             {renderStatus()}
+            {renderSupportSection()}
           </>
         )}
       </div>
