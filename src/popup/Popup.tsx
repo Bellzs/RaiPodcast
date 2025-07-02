@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { PageContent, AgentConfig, TTSConfig } from '@/shared/types';
 import { MESSAGE_TYPES } from '@/shared/constants';
 import { StorageManager } from '@/shared/storage';
+import packageJson from '../../package.json';
 import './popup.css';
 
 interface PodcastSession {
@@ -973,17 +974,20 @@ const Popup: React.FC = () => {
         )}
       </div>
 
-      {/* 设置链接 */}
-      <a
-        href="#"
-        className="settings-link"
-        onClick={(e) => {
-          e.preventDefault();
-          openOptionsPage();
-        }}
-      >
-设置
-      </a>
+      {/* 底部栏 */}
+      <div className="popup-footer">
+        <span className="version-info">v{packageJson.version}</span>
+        <a
+          href="#"
+          className="settings-link"
+          onClick={(e) => {
+            e.preventDefault();
+            openOptionsPage();
+          }}
+        >
+          设置
+        </a>
+      </div>
     </div>
   );
 };

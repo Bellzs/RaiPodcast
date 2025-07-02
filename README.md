@@ -4,11 +4,7 @@
   <img src="RaiPod.png" alt="RaiPodcast Logo" width="128" height="128">
   <h3>🎙️ 将网页的图文内容转换为AI播客双人对话</h3>
 
-  [![Chrome Extension](https://img.shields.io/badge/Chrome-Extension-4285F4?style=flat-square&logo=google-chrome&logoColor=white)]()
-  [![TypeScript](https://img.shields.io/badge/TypeScript-007ACC?style=flat-square&logo=typescript&logoColor=white)]()
-  [![React](https://img.shields.io/badge/React-20232A?style=flat-square&logo=react&logoColor=61DAFB)]()
-  [![Ant Design](https://img.shields.io/badge/Ant%20Design-0170FE?style=flat-square&logo=ant-design&logoColor=white)]()
-  [![MIT License](https://img.shields.io/badge/License-MIT-green.svg?style=flat-square)]()
+  [![Chrome Extension](https://img.shields.io/badge/Chrome-Extension-4285F4?style=flat-square&logo=google-chrome&logoColor=white)]()[![TypeScript](https://img.shields.io/badge/TypeScript-007ACC?style=flat-square&logo=typescript&logoColor=white)]()[![React](https://img.shields.io/badge/React-20232A?style=flat-square&logo=react&logoColor=61DAFB)]()[![Ant Design](https://img.shields.io/badge/Ant%20Design-0170FE?style=flat-square&logo=ant-design&logoColor=white)]()[![MIT License](https://img.shields.io/badge/License-MIT-green.svg?style=flat-square)]()
 
 ## 📖 项目简介
 
@@ -42,7 +38,7 @@ RaiPodcast 是一款创新的浏览器（Chromium内核）扩展，能够智能�
 
 2. **安装到浏览器**
    - 打开 Chrome 浏览器
-   - 访问 `chrome://extensions/`
+   - 访问 [chrome://extensions/](chrome://extensions/)
    - 开启右上角的"开发者模式"
    - 将下载的 `.crx` 文件拖拽到页面中
    - 确认安装即可

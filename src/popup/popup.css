@@ -382,20 +382,34 @@ body {
   font-size: 11px;
 }
 
-/* 设置链接 */
+/* 底部栏 */
+.popup-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 16px;
+  border-top: 1px solid #e0e0e0;
+  background-color: #fafafa;
+}
+
 .settings-link {
-  display: block;
-  text-align: center;
   color: #007bff;
   text-decoration: none;
   font-size: 12px;
-  /* margin-top: 16px; */
-  padding: 8px;
-  border-top: 1px solid #e0e0e0;
+  padding: 4px 8px;
+  border-radius: 4px;
+  transition: background-color 0.2s ease;
 }
 
 .settings-link:hover {
   text-decoration: underline;
+  background-color: #f0f8ff;
+}
+
+.version-info {
+  font-size: 11px;
+  color: #666;
+  font-weight: 500;
 }
 
 /* 播客播放器样式 */
