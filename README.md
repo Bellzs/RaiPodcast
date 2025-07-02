@@ -5,6 +5,7 @@
   <h3>🎙️ 将网页的图文内容转换为AI播客双人对话</h3>
 
   [![Chrome Extension](https://img.shields.io/badge/Chrome-Extension-4285F4?style=flat-square&logo=google-chrome&logoColor=white)]()[![TypeScript](https://img.shields.io/badge/TypeScript-007ACC?style=flat-square&logo=typescript&logoColor=white)]()[![React](https://img.shields.io/badge/React-20232A?style=flat-square&logo=react&logoColor=61DAFB)]()[![Ant Design](https://img.shields.io/badge/Ant%20Design-0170FE?style=flat-square&logo=ant-design&logoColor=white)]()[![MIT License](https://img.shields.io/badge/License-MIT-green.svg?style=flat-square)]()
+</div>
 
 ## 📖 项目简介
 
