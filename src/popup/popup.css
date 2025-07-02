@@ -3,6 +3,31 @@
   box-sizing: border-box;
 }
 
+/* 全局滚动条美化 */
+*::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+*::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 3px;
+}
+
+*::-webkit-scrollbar-thumb {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-radius: 3px;
+  transition: background 0.3s ease;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(135deg, #5a6fd8 0%, #6a4190 100%);
+}
+
+*::-webkit-scrollbar-corner {
+  background: #f1f1f1;
+}
+
 body {
   margin: 0;
   padding: 0;
@@ -53,6 +78,45 @@ body {
   flex: 1;
   padding: 0 12px 0px 12px;
   overflow-y: auto;
+}
+
+/* 美化滚动条样式 */
+.popup-content::-webkit-scrollbar {
+  width: 6px;
+}
+
+.popup-content::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 3px;
+}
+
+.popup-content::-webkit-scrollbar-thumb {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-radius: 3px;
+  transition: background 0.3s ease;
+}
+
+.popup-content::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(135deg, #5a6fd8 0%, #6a4190 100%);
+}
+
+/* 为其他可能有滚动条的元素添加样式 */
+.error-content.scrollable::-webkit-scrollbar {
+  width: 4px;
+}
+
+.error-content.scrollable::-webkit-scrollbar-track {
+  background: #f8f9fa;
+  border-radius: 2px;
+}
+
+.error-content.scrollable::-webkit-scrollbar-thumb {
+  background: #dc3545;
+  border-radius: 2px;
+}
+
+.error-content.scrollable::-webkit-scrollbar-thumb:hover {
+  background: #c82333;
 }
 
 .page-info {
