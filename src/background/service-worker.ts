@@ -755,13 +755,10 @@ class ServiceWorker {
   }
 
   /**
-   * 构建多模态消息（支持OpenAI和阿里云通义千问格式）
+   * 构建多模态消息（使用OpenAI格式）
    */
   private buildMultiModalMessages(content: any, agentConfig: any): any[] {
     const messages = [];
-    
-    // 检测API类型
-    const isAliCloudAPI = agentConfig.apiUrl?.includes('dashscope.aliyuncs.com');
     
     // 添加系统消息
     const systemPrompt = (agentConfig.systemPrompt || '你是一个专业的播客主持人。') + '\n\n请根据提供的网页内容生成一段播客对话。要求：\n1. 生成两个主持人（A和B）之间的对话\n2. 对话要生动有趣，有互动性\n3. 每段对话用"A:"或"B:"开头\n4. 对话要涵盖内容的主要观点\n5. 如果有图片，请在对话中自然地提及图片内容\n6. 对话总长度控制在合适范围内\n7. 每个人的对话不要太长，保持自然的交流节奏\n\n请直接输出对话内容，不要添加其他说明。';
@@ -796,25 +793,14 @@ class ServiceWorker {
         }
       ];
       
-      // 添加图片 - 根据API类型使用不同格式
+      // 添加图片 - 使用OpenAI格式
       content.images.forEach((image: any, index: number) => {
-        if (isAliCloudAPI) {
-          // 阿里云通义千问格式
-          userContent.push({
-            type: 'image_url',
-            image_url: {
-              url: image.src
-            }
-          } as any);
-        } else {
-          // OpenAI格式
-          userContent.push({
-            type: 'image_url',
-            image_url: {
-              url: image.src
-            }
-          } as any);
-        }
+        userContent.push({
+          type: 'image_url',
+          image_url: {
+            url: image.src
+          }
+        } as any);
         
         // 添加图片描述
         if (image.alt) {
@@ -842,30 +828,20 @@ class ServiceWorker {
       messageCount: messages.length,
       hasImages: agentConfig.supportsImages && content.images?.length > 0,
       imageCount: content.images?.length || 0,
-      apiType: isAliCloudAPI ? '阿里云' : 'OpenAI'
+      apiType: 'OpenAI'
     });
     
     return messages;
   }
 
   /**
-   * 调用AI API生成播客脚本（支持OpenAI和阿里云通义千问格式）
+   * 调用AI API生成播客脚本（使用OpenAI格式）
    */
   private async generatePodcastScript(messages: any[], agentConfig: any): Promise<string> {
-    // 检测API类型并构建请求
-    const isAliCloudAPI = agentConfig.apiUrl?.includes('dashscope.aliyuncs.com');
-    
     const headers: Record<string, string> = {
-      'Content-Type': 'application/json'
+      'Content-Type': 'application/json',
+      'Authorization': 'Bearer ' + agentConfig.apiKey
     };
-    
-    // 根据API类型设置认证头
-    if (isAliCloudAPI) {
-      headers['Authorization'] = 'Bearer ' + agentConfig.apiKey;
-    } else {
-      // OpenAI格式
-      headers['Authorization'] = 'Bearer ' + agentConfig.apiKey;
-    }
     
     // 构建请求体
     const requestBody: any = {
@@ -889,7 +865,7 @@ class ServiceWorker {
       url: agentConfig.apiUrl,
       model: requestBody.model,
       messagesCount: messages.length,
-      isAliCloud: isAliCloudAPI
+      apiType: 'OpenAI'
     });
     
     const response = await fetch(agentConfig.apiUrl, {
@@ -900,9 +876,7 @@ class ServiceWorker {
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
-      const errorMessage = isAliCloudAPI 
-        ? '阿里云API调用失败: ' + response.status + ' ' + (errorData.message || errorData.error?.message || response.statusText)
-        : 'OpenAI API调用失败: ' + response.status + ' ' + (errorData.error?.message || response.statusText);
+      const errorMessage = 'OpenAI API调用失败: ' + response.status + ' ' + (errorData.error?.message || response.statusText);
       
       // 构建详细错误信息
       const detailedError = new Error(errorMessage);

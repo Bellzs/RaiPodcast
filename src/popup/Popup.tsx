@@ -559,9 +559,7 @@ const Popup: React.FC = () => {
                        backgroundColor: '#fff',
                        padding: '8px',
                        border: '1px solid #ddd',
-                       borderRadius: '4px',
-                       maxHeight: '150px',
-                       overflow: 'auto'
+                       borderRadius: '4px'
                      }}>
                        {JSON.stringify(state.errorDetails.apiResponse, null, 2)}
                      </div>
@@ -785,7 +783,7 @@ const Popup: React.FC = () => {
           <div className="qr-code-container">
             <img 
               src="../assets/alipay.png" 
-              alt="支付宝赞助二维码" 
+              alt="赞助二维码" 
               className="qr-code"
             />
           </div>
