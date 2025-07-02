@@ -56,14 +56,14 @@ body {
 .page-info {
   background: #f8f9fa;
   border-radius: 8px;
-  padding: 12px;
+  /* padding: 12px; */
   margin-bottom: 16px;
+  margin-bottom: 2px;
 }
 
 .page-title {
   font-size: 14px;
   font-weight: 500;
-  color: #333;
   margin: 0 0 4px 0;
   line-height: 1.4;
 }
@@ -73,10 +73,6 @@ body {
   color: #666;
   margin: 0;
   word-break: break-all;
-}
-
-.action-section {
-  margin-bottom: 16px;
 }
 
 .generate-btn {
