@@ -1,6 +1,6 @@
 {
   "manifest_version": 3,
-  "name": "RaiPod - AI播客生成器",
+  "name": "RaiPodcast - AI播客生成器",
   "version": "1.0.0",
   "description": "将网页内容转换为AI播客对话的Chrome扩展",
   "permissions": [
@@ -24,7 +24,7 @@
   ],
   "action": {
     "default_popup": "popup/popup.html",
-    "default_title": "RaiPod",
+    "default_title": "RaiPodcast",
     "default_icon": {
       "16": "assets/icon-16.png",
       "48": "assets/icon-48.png",

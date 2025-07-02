@@ -14,7 +14,7 @@
     "podcast",
     "tts"
   ],
-  "author": "RaiPod Team",
+  "author": "RaiPodcast Team",
   "license": "MIT",
   "devDependencies": {
     "@types/chrome": "^0.0.246",

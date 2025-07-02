@@ -13,10 +13,21 @@ interface PodcastSession {
   dialogues: Array<{speaker: string, text: string}>;
 }
 
+interface ErrorDetails {
+  originalError: string;
+  timestamp: string;
+  context: string;
+  apiResponse?: any;
+  originalScript?: string;
+  parseError?: string;
+  statusCode?: number;
+}
+
 interface PopupState {
   pageContent: PageContent | null;
   loading: boolean;
   error: string | null;
+  errorDetails: ErrorDetails | null; // 详细错误信息
   ttsError: string | null; // 专门用于TTS错误
   generating: boolean;
   currentAgent: AgentConfig | null;
@@ -29,6 +40,7 @@ const Popup: React.FC = () => {
     pageContent: null,
     loading: true,
     error: null,
+    errorDetails: null,
     ttsError: null,
     generating: false,
     currentAgent: null,
@@ -105,7 +117,7 @@ const Popup: React.FC = () => {
    */
   const initializePopup = async (): Promise<void> => {
     try {
-      setState(prev => ({ ...prev, loading: true, error: null, ttsError: null }));
+      setState(prev => ({ ...prev, loading: true, error: null, errorDetails: null, ttsError: null }));
       
       // 获取当前标签页信息
       const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
@@ -161,7 +173,8 @@ const Popup: React.FC = () => {
       setState(prev => ({
         ...prev,
         loading: false,
-        error: error instanceof Error ? error.message : '初始化失败'
+        error: error instanceof Error ? error.message : '初始化失败',
+        errorDetails: null
       }));
     }
   };
@@ -175,7 +188,7 @@ const Popup: React.FC = () => {
     }
 
     try {
-      setState(prev => ({ ...prev, generating: true, error: null, ttsError: null }));
+      setState(prev => ({ ...prev, generating: true, error: null, errorDetails: null, ttsError: null }));
 
       // 获取当前配置
       const [agentConfig, ttsConfigs] = await Promise.all([
@@ -232,13 +245,26 @@ const Popup: React.FC = () => {
         // 第一条音频由后台自动生成，无需前端主动请求
         // 等待AUDIO_READY消息通知第一条音频生成完成
       } else {
-        throw new Error(response.error || '生成播客失败');
+        // 处理失败响应
+        let errorMessage = response.error || '生成播客失败';
+        
+        setState(prev => ({
+          ...prev,
+          error: errorMessage,
+          errorDetails: response.errorDetails || null
+        }));
+        return; // 直接返回，不抛出异常
       }
     } catch (error) {
       console.error('生成播客失败:', error);
+      
+      // 构建详细的错误信息用于展示
+      let displayError = error instanceof Error ? error.message : '生成播客失败';
+      
       setState(prev => ({
         ...prev,
-        error: error instanceof Error ? error.message : '生成播客失败'
+        error: displayError,
+        errorDetails: null
       }));
     } finally {
       setState(prev => ({ ...prev, generating: false }));
@@ -481,10 +507,95 @@ const Popup: React.FC = () => {
   const renderError = (): JSX.Element => (
     <>
       {state.error && (
-        <div className="error">
-          <div className="error-content">
-            {state.error}
+        <div className="error ai-error">
+          <div className="error-content scrollable">
+            <div style={{ marginBottom: '8px', fontWeight: 'bold' }}>
+              {state.error}
+            </div>
+            {state.errorDetails && (
+              <div style={{ 
+                fontSize: '12px', 
+                color: '#666',
+                backgroundColor: '#f8f9fa',
+                padding: '8px',
+                borderRadius: '4px',
+                border: '1px solid #e9ecef'
+              }}>
+                <div style={{ marginBottom: '8px', fontWeight: 'bold', color: '#333' }}>详细信息：</div>
+                
+                {/* 优先显示AI返回的原始内容 */}
+                 {state.errorDetails?.originalScript && (
+                   <div style={{ marginBottom: '12px' }}>
+                     <div style={{ fontWeight: 'bold', color: '#d73527', marginBottom: '4px' }}>AI返回的原始内容：</div>
+                     <div style={{
+                       fontFamily: 'monospace',
+                       whiteSpace: 'pre-wrap',
+                       wordBreak: 'break-all',
+                       backgroundColor: '#fff',
+                       padding: '8px',
+                       border: '1px solid #ddd',
+                       borderRadius: '4px',
+                       maxHeight: '200px',
+                       overflow: 'auto'
+                     }}>
+                       {state.errorDetails.originalScript}
+                     </div>
+                     {state.errorDetails?.parseError && (
+                       <div style={{ marginTop: '4px', color: '#d73527', fontSize: '11px' }}>
+                         解析错误：{state.errorDetails.parseError}
+                       </div>
+                     )}
+                   </div>
+                 )}
+                 
+                 {/* 显示API响应数据 */}
+                 {state.errorDetails?.apiResponse && (
+                   <div style={{ marginBottom: '12px' }}>
+                     <div style={{ fontWeight: 'bold', color: '#d73527', marginBottom: '4px' }}>API响应数据：</div>
+                     <div style={{
+                       fontFamily: 'monospace',
+                       whiteSpace: 'pre-wrap',
+                       wordBreak: 'break-all',
+                       backgroundColor: '#fff',
+                       padding: '8px',
+                       border: '1px solid #ddd',
+                       borderRadius: '4px',
+                       maxHeight: '150px',
+                       overflow: 'auto'
+                     }}>
+                       {JSON.stringify(state.errorDetails.apiResponse, null, 2)}
+                     </div>
+                   </div>
+                 )}
+                 
+                 {/* 显示其他详细信息 */}
+                 <div style={{
+                   fontFamily: 'monospace',
+                   whiteSpace: 'pre-wrap',
+                   wordBreak: 'break-all',
+                   fontSize: '11px',
+                   color: '#888'
+                 }}>
+                   {state.errorDetails?.timestamp && (
+                     <div>时间：{state.errorDetails.timestamp}</div>
+                   )}
+                   {state.errorDetails?.context && (
+                     <div>上下文：{state.errorDetails.context}</div>
+                   )}
+                   {state.errorDetails?.statusCode && (
+                     <div>状态码：{state.errorDetails.statusCode}</div>
+                   )}
+                 </div>
+              </div>
+            )}
           </div>
+          <button 
+            className="error-close-btn"
+            onClick={() => setState(prev => ({ ...prev, error: null, errorDetails: null }))}
+            title="关闭错误提示"
+          >
+            ×
+          </button>
         </div>
       )}
       {state.ttsError && (
@@ -803,8 +914,8 @@ const Popup: React.FC = () => {
     <div className="popup-container">
       {/* 头部 */}
       <div className="popup-header">
-        <img src="../assets/icon-128.png" alt="RaiPod Logo" className="popup-logo" />
-        <h1 className="popup-title">RaiPod</h1>
+        <img src="../assets/icon-128.png" alt="RaiPodcast Logo" className="popup-logo" />
+        <h1 className="popup-title">RaiPodcast</h1>
       </div>
 
       {/* 内容区域 */}

@@ -781,7 +781,7 @@ const Options: React.FC = () => {
                         onChange={(e) => updateAgentConfig(config.id, 'supportsImages', e.target.checked)}
                         style={{ margin: 0 }}
                       />
-                      支持图片输入（多模态）
+                      支持图片理解（多模态）
                     </label>
                     <p style={{ fontSize: '12px', color: '#666', margin: '4px 0 0 0' }}>
                       启用后将在生成播客时同时发送网页中的图片内容
@@ -990,8 +990,8 @@ const Options: React.FC = () => {
       {/* 头部 */}
       <div className="options-header">
         <h1 className="options-title">
-          <img src="../assets/icon-128.png" alt="RaiPod Logo" className="options-logo" />
-          RaiPod 设置
+          <img src="../assets/icon-128.png" alt="RaiPodcast Logo" className="options-logo" />
+          RaiPodcast 设置
         </h1>
         <p className="options-description">
           配置AI模型和TTS服务，开始您的播客之旅

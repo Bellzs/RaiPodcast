@@ -188,6 +188,14 @@ body {
   margin-top: 8px;
 }
 
+.ai-error {
+  position: relative;
+  background: #f8d7da;
+  border: 1px solid #f5c6cb;
+  color: #721c24;
+  margin-top: 8px;
+}
+
 .error-close-btn {
   position: absolute;
   top: 8px;

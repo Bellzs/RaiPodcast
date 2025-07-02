@@ -16,14 +16,14 @@ class ContentScript {
    */
   private init(): void {
     if (this.isInitialized) {
-      console.log('RaiPod Content Script 已经初始化过了');
+      console.log('RaiPodcast Content Script 已经初始化过了');
       return;
     }
 
     // 监听来自background的消息
     chrome.runtime.onMessage.addListener(this.handleMessage.bind(this));
     this.isInitialized = true;
-    console.log('RaiPod Content Script 已加载并初始化');
+    console.log('RaiPodcast Content Script 已加载并初始化');
     
     // 向background发送准备就绪信号
     if (chrome.runtime?.id) {
@@ -306,12 +306,12 @@ class ContentScript {
 }
 
 // 启动内容脚本
-if (!(window as any).RaiPodContentScript) {
-  (window as any).RaiPodContentScript = new ContentScript();
-  console.log('RaiPod Content Script 实例已创建');
+if (!(window as any).RaiPodcastContentScript) {
+  (window as any).RaiPodcastContentScript = new ContentScript();
+  console.log('RaiPodcast Content Script 实例已创建');
 } else {
-  console.log('RaiPod Content Script 实例已存在');
+  console.log('RaiPodcast Content Script 实例已存在');
 }
 
 // 添加全局标识符
-(window as any).RaiPodContentScriptLoaded = true;
+(window as any).RaiPodcastContentScriptLoaded = true;

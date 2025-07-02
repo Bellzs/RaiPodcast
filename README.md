@@ -1,7 +1,7 @@
-# RaiPod - AI播客生成器
+# RaiPodcast - AI播客生成器
 
 <div align="center">
-  <img src="src/assets/icon-800.png" alt="RaiPod Logo" width="128" height="128">
+  <img src="src/assets/icon-800.png" alt="RaiPodcast Logo" width="128" height="128">
 
 
   <h3>将任何网页内容转换为AI播客对话</h3>
@@ -60,8 +60,8 @@
 
 1. **克隆项目**
    ```bash
-   git clone https://github.com/your-username/RaiPod.git
-   cd RaiPod
+   git clone https://github.com/your-username/RaiPodcast.git
+   cd RaiPodcast
    ```
 
 2. **安装依赖**
@@ -80,7 +80,7 @@
    - 开启"开发者模式"
    - 点击"加载已解压的扩展程序"
    - 选择项目的 `dist` 文件夹
-   - 扩展成功加载后，可在工具栏看到RaiPod图标
+   - 扩展成功加载后，可在工具栏看到RaiPodcast图标
 
 > **注意**: 当前版本为框架版本，UI界面已完成但核心功能逻辑仍在开发中。扩展可以正常安装和打开界面，但播客生成功能尚未实现。
 
@@ -117,7 +117,7 @@ npm run watch
 ## 🏗️ 项目结构
 
 ```
-RaiPod/
+RaiPodcast/
 ├── src/
 │   ├── background/          # 后台脚本
 │   │   ├── service-worker.ts
@@ -207,7 +207,7 @@ RaiPod/
 
 <div align="center">
   <p>如果这个项目对您有帮助，请给它一个 ⭐️</p>
-  <p>Made with ❤️ by RaiPod Team</p>
+  <p>Made with ❤️ by RaiPodcast Team</p>
 </div> - AI播客Chrome插件
 
 一个基于Chromium浏览器引擎的AI播客插件，能够将网页内容转换为生动的双人对话播客。
@@ -333,7 +333,7 @@ RaiPod/
 #### 1. Popup主界面 (320x600px)
 ```
 ┌─────────────────────────────────┐
-│  🎙️ RaiPod                      │
+│  🎙️ RaiPodcast                      │
 ├─────────────────────────────────┤
 │  📄 当前页面：技术文章标题        │
 │  🤖 AI模型：GPT-4播客专家        │
@@ -443,8 +443,8 @@ function synthesizeAudio(
 ### 开发环境搭建
 ```bash
 # 克隆项目
-git clone https://github.com/your-username/RaiPod.git
-cd RaiPod
+git clone https://github.com/your-username/RaiPodcast.git
+cd RaiPodcast
 
 # 安装依赖
 npm install
@@ -593,4 +593,4 @@ A: 目前需要网络连接调用AI和TTS服务，未来计划支持本地模型
 
 ---
 
-**RaiPod** - 让每个网页都变成有趣的播客 🎙️
+**RaiPodcast** - 让每个网页都变成有趣的播客 🎙️

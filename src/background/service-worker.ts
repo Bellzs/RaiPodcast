@@ -460,14 +460,14 @@ class ServiceWorker {
     // 监听消息
     chrome.runtime.onMessage.addListener(this.handleMessage.bind(this));
     
-    console.log('RaiPod Service Worker 已启动');
+    console.log('RaiPodcast Service Worker 已启动');
   }
 
   /**
    * 处理扩展安装
    */
   private handleInstalled(details: chrome.runtime.InstalledDetails): void {
-    console.log('RaiPod 扩展已安装:', details.reason);
+    console.log('RaiPodcast 扩展已安装:', details.reason);
     
     if (details.reason === 'install') {
       // 首次安装时的初始化逻辑
@@ -562,7 +562,7 @@ class ServiceWorker {
       try {
         const result = await chrome.scripting.executeScript({
           target: { tabId },
-          func: () => (window as any).RaiPodContentScriptLoaded === true
+          func: () => (window as any).RaiPodcastContentScriptLoaded === true
         });
         contentScriptLoaded = result[0]?.result === true;
         console.log('Content script加载状态:', contentScriptLoaded);
@@ -720,7 +720,30 @@ class ServiceWorker {
       
     } catch (error) {
       console.error('生成播客失败:', error as Error);
-      sendResponse({ success: false, error: (error as Error).message });
+      
+      // 构建详细的错误信息，包含完整的错误上下文
+      let errorMessage = (error as Error).message;
+      let errorDetails = null;
+      
+      // 检查是否有详细错误信息（如API响应、原始脚本等）
+      const errorObj = error as any;
+      if (errorObj.apiResponse || errorObj.originalScript || errorObj.parseError) {
+        errorDetails = {
+          originalError: errorMessage,
+          timestamp: new Date().toISOString(),
+          context: 'AI大模型调用',
+          apiResponse: errorObj.apiResponse || undefined,
+          originalScript: errorObj.originalScript || undefined,
+          parseError: errorObj.parseError?.message || undefined,
+          statusCode: errorObj.statusCode || undefined
+        };
+      }
+      
+      sendResponse({ 
+        success: false, 
+        error: errorMessage,
+        errorDetails: errorDetails
+      });
     }
   }
 
@@ -879,17 +902,40 @@ class ServiceWorker {
       const errorMessage = isAliCloudAPI 
         ? '阿里云API调用失败: ' + response.status + ' ' + (errorData.message || errorData.error?.message || response.statusText)
         : 'OpenAI API调用失败: ' + response.status + ' ' + (errorData.error?.message || response.statusText);
-      throw new Error(errorMessage);
+      
+      // 构建详细错误信息
+      const detailedError = new Error(errorMessage);
+      (detailedError as any).apiResponse = errorData;
+      (detailedError as any).statusCode = response.status;
+      throw detailedError;
     }
 
     const data = await response.json();
+    console.log('API响应数据:', JSON.stringify(data, null, 2));
     
-    // 解析响应内容
-    const content = data.choices?.[0]?.message?.content || '';
+    // 解析响应内容 - 兼容多种格式
+    let content = '';
+    
+    // 标准OpenAI格式
+    if (data.choices?.[0]?.message?.content) {
+      content = data.choices[0].message.content;
+    }
+    // 兼容其他可能的格式
+    else if (data.content) {
+      content = data.content;
+    }
+    else if (data.text) {
+      content = data.text;
+    }
+    else if (data.response) {
+      content = data.response;
+    }
     
     if (!content) {
-      console.warn('API响应数据:', data);
-      throw new Error('API返回的内容为空');
+      console.warn('API响应数据:', JSON.stringify(data, null, 2));
+      const errorWithDetails = new Error('AI返回的内容格式不正确，请确保返回的是包含user和content字段的JSON数组格式。');
+      (errorWithDetails as any).apiResponse = data;
+      throw errorWithDetails;
     }
     
     console.log('播客脚本生成成功，长度:', content.length);
@@ -925,7 +971,13 @@ class ServiceWorker {
       
     } catch (error) {
       console.error('JSON解析失败:', error);
-      throw new Error('AI返回的内容格式不正确，请确保返回的是包含user和content字段的JSON数组格式。');
+      console.error('原始脚本内容:', script);
+      
+      // 构建详细错误信息
+      const detailedError = new Error('AI返回的内容格式不正确，请确保返回的是包含user和content字段的JSON数组格式。');
+      (detailedError as any).originalScript = script;
+      (detailedError as any).parseError = error;
+      throw detailedError;
     }
     
     return dialogues;
