@@ -1,7 +1,6 @@
 import React from 'react';
 import { createRoot } from 'react-dom/client';
 import Popup from './Popup';
-import './index.css';
 
 // 创建React应用根节点
 const container = document.getElementById('root');
