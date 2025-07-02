@@ -1044,7 +1044,6 @@ const Options: React.FC = () => {
                       <button 
                         className="btn btn-small btn-primary" 
                         onClick={() => updateSettings('voiceAConfigId', config.id)}
-                        style={{ marginRight: '8px' }}
                       >
                         设为角色A
                       </button>
@@ -1177,21 +1176,21 @@ const Options: React.FC = () => {
         {renderTTSConfig()}
         
         {/* 操作按钮 */}
-        <div className="btn-group">
-          <button
-            className="btn btn-primary"
-            onClick={saveConfigs}
-            disabled={state.saving}
-          >
-            {state.saving ? '保存中...' : '保存配置'}
-          </button>
-          
+        <div className="btn-group" style={{ display: 'flex', justifyContent: 'flex-end' }}>
           <button
             className="btn btn-secondary"
             onClick={loadConfigs}
             disabled={state.saving}
           >
             重新加载
+          </button>
+          
+          <button
+            className="btn btn-primary"
+            onClick={saveConfigs}
+            disabled={state.saving}
+          >
+            {state.saving ? '保存中...' : '保存配置'}
           </button>
         </div>
       </div>
