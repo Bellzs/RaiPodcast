@@ -4,7 +4,7 @@
   <img src="RaiPod.png" alt="RaiPodcast Logo" width="128" height="128">
   <h3>🎙️ 将网页的图文内容转换为AI播客双人对话</h3>
 
-  [![Chrome Extension](https://img.shields.io/badge/Chrome-Extension-4285F4?style=flat-square&logo=google-chrome&logoColor=white)]()[![TypeScript](https://img.shields.io/badge/TypeScript-007ACC?style=flat-square&logo=typescript&logoColor=white)]()[![React](https://img.shields.io/badge/React-20232A?style=flat-square&logo=react&logoColor=61DAFB)]()[![Ant Design](https://img.shields.io/badge/Ant%20Design-0170FE?style=flat-square&logo=ant-design&logoColor=white)]()[![MIT License](https://img.shields.io/badge/License-MIT-green.svg?style=flat-square)]()
+  [![Chrome Extension](https://img.shields.io/badge/Chrome-Extension-4285F4?style=flat-square&logo=google-chrome&logoColor=white)]()[![TypeScript](https://img.shields.io/badge/TypeScript-007ACC?style=flat-square&logo=typescript&logoColor=white)]()[![React](https://img.shields.io/badge/React-20232A?style=flat-square&logo=react&logoColor=61DAFB)]()[![Ant Design](https://img.shields.io/badge/Ant%20Design-0170FE?style=flat-square&logo=ant-design&logoColor=white)]()[![GPL-3.0 License](https://img.shields.io/badge/License-GPL--3.0-blue.svg?style=flat-square)]()
 </div>
 
 ## 📖 项目简介
@@ -256,6 +256,28 @@ RaiPodcast/
 ## ⭐ Star History
 
 [![Star History Chart](https://api.star-history.com/svg?repos=Bellzs/RaiPodcast&type=Date)](https://star-history.com/#Bellzs/RaiPodcast&Date)
+
+## 📄 开源协议
+
+本项目采用 **GPL-3.0** 开源协议。这意味着：
+
+### ✅ 您可以：
+- 🔄 **自由使用** - 个人和商业用途均可
+- 📝 **修改代码** - 根据需要修改和定制
+- 🔗 **分发副本** - 分享给他人使用
+- 💰 **商业使用** - 用于商业项目
+
+### ⚠️ 您必须：
+- 📋 **保留版权声明** - 保留原作者的版权信息
+- 🔓 **开源衍生作品** - 基于本项目的衍生作品必须同样开源
+- 📜 **提供源代码** - 分发时必须提供完整源代码
+- 🏷️ **声明修改** - 明确标注您所做的修改
+
+### 🚫 限制：
+- 🛡️ **无担保** - 软件按"现状"提供，不提供任何担保
+- ⚖️ **传染性** - 衍生作品必须使用相同的GPL-3.0协议
+
+详细协议内容请查看 [LICENSE](LICENSE) 文件。
 
 ---
 

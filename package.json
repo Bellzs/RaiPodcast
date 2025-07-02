@@ -15,7 +15,7 @@
     "tts"
   ],
   "author": "RaiPodcast Team",
-  "license": "MIT",
+  "license": "GPL-3.0",
   "devDependencies": {
     "@types/chrome": "^0.0.246",
     "@types/node": "^20.0.0",
