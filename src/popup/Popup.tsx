@@ -57,16 +57,8 @@ const Popup: React.FC = () => {
         
         // 更新当前会话的音频状态
         setState(prev => {
-          console.log('当前状态:', {
-            hasSession: !!prev.podcastSession,
-            currentSessionId: prev.podcastSession?.sessionId,
-            targetSessionId: sessionId,
-            currentIndex: prev.podcastSession?.currentIndex,
-            targetIndex: index
-          });
-          
           if (prev.podcastSession && prev.podcastSession.sessionId === sessionId) {
-            // 如果是当前索引的音频，则更新状态（移除currentAudio的检查条件）
+            // 只有当前索引的音频才更新播放状态
             if (index === prev.podcastSession.currentIndex) {
               console.log(`更新状态：设置第${index + 1}条音频`);
               return {
@@ -74,6 +66,7 @@ const Popup: React.FC = () => {
                 podcastSession: {
                   ...prev.podcastSession,
                   currentAudio: audio
+                  // 保持原有的isPlaying状态，如果之前是true（自动播放），则会自动开始播放
                 }
               };
             }
@@ -87,10 +80,8 @@ const Popup: React.FC = () => {
       if (message.type === MESSAGE_TYPES.TTS_ERROR) {
         const { sessionId, index, error } = message.data;
         console.log('[Popup] 收到TTS_ERROR消息:', { sessionId, index, error });
-        console.log('[Popup] 当前会话ID:', state.podcastSession?.sessionId);
-        console.log('[Popup] 消息会话ID匹配:', state.podcastSession?.sessionId === sessionId);
         
-        // 显示TTS错误信息，使用专门的ttsError字段
+        // 显示TTS错误信息
         setState(prev => {
           console.log('[Popup] 更新TTS错误状态:', `第${index + 1}条音频生成失败: ${error}`);
           return {
@@ -223,7 +214,7 @@ const Popup: React.FC = () => {
           errorMessage = `音频生成失败: ${response.data.audioError}。请检查TTS配置，特别是音色curl设置是否正确。`;
         }
         
-        // 立即创建播客会话，不管音频是否生成成功
+        // 立即创建播客会话
         setState(prev => ({
           ...prev,
           generating: false, // 立即停止生成状态，显示播放器
@@ -233,17 +224,13 @@ const Popup: React.FC = () => {
             totalDialogues: response.data.totalDialogues,
             currentIndex: 0,
             isPlaying: false,
-            currentAudio: response.data.firstAudio || null, // 音频可能为空
+            currentAudio: null, // 初始为空，等待音频加载
             dialogues: response.data.dialogues || []
           }
         }));
         
-        // 如果第一个音频生成成功，预加载下一个音频
-        if (response.data.firstAudio) {
-          setTimeout(() => {
-            loadNextAudio();
-          }, 100);
-        }
+        // 第一条音频由后台自动生成，无需前端主动请求
+        // 等待AUDIO_READY消息通知第一条音频生成完成
       } else {
         throw new Error(response.error || '生成播客失败');
       }
@@ -306,7 +293,60 @@ const Popup: React.FC = () => {
   };
 
   /**
-   * 加载下一条音频
+   * 请求指定索引的音频
+   */
+  const requestAudio = async (sessionId: string, index: number): Promise<void> => {
+    try {
+      const response = await chrome.runtime.sendMessage({
+        type: MESSAGE_TYPES.GET_AUDIO,
+        data: {
+          sessionId,
+          index,
+          direction: 'current'
+        }
+      });
+      
+      console.log(`第${index + 1}条音频请求响应:`, response);
+      
+      if (response && response.success) {
+        if (response.audioUrl) {
+          // 音频已生成完成，立即更新状态
+          setState(prev => {
+            if (prev.podcastSession && prev.podcastSession.sessionId === sessionId && index === prev.podcastSession.currentIndex) {
+              return {
+                ...prev,
+                podcastSession: {
+                  ...prev.podcastSession,
+                  currentAudio: response.audioUrl
+                }
+              };
+            }
+            return prev;
+          });
+          console.log(`第${index + 1}条音频已就绪`);
+        } else {
+          // 音频正在生成中，等待AUDIO_READY消息
+          console.log(`第${index + 1}条音频正在生成中，等待完成通知`);
+        }
+      } else {
+        console.error(`第${index + 1}条音频请求失败:`, response?.error);
+        // 显示错误信息
+        setState(prev => ({
+          ...prev,
+          ttsError: `第${index + 1}条音频请求失败: ${response?.error || '未知错误'}`
+        }));
+      }
+    } catch (error) {
+      console.error(`请求第${index + 1}条音频失败:`, error);
+      setState(prev => ({
+        ...prev,
+        ttsError: `第${index + 1}条音频请求失败: ${error instanceof Error ? error.message : '网络错误'}`
+      }));
+    }
+  };
+
+  /**
+   * 预加载下一条音频
    */
   const loadNextAudio = async (): Promise<void> => {
     if (!state.podcastSession) return;
@@ -314,22 +354,7 @@ const Popup: React.FC = () => {
     const nextIndex = state.podcastSession.currentIndex + 1;
     if (nextIndex >= state.podcastSession.totalDialogues) return;
     
-    try {
-      const response = await chrome.runtime.sendMessage({
-        type: MESSAGE_TYPES.GET_AUDIO,
-        data: {
-          sessionId: state.podcastSession.sessionId,
-          index: nextIndex,
-          direction: 'next' // 明确指定为下一条音频请求
-        }
-      });
-      
-      if (response.success) {
-        console.log('下一条音频预加载完成');
-      }
-    } catch (error) {
-      console.error('预加载下一条音频失败:', error);
-    }
+    await requestAudio(state.podcastSession.sessionId, nextIndex);
   };
 
   /**
@@ -339,46 +364,20 @@ const Popup: React.FC = () => {
     if (!state.podcastSession || state.podcastSession.currentIndex <= 0) return;
     
     const newIndex = state.podcastSession.currentIndex - 1;
-    const wasPlaying = state.podcastSession.isPlaying; // 记住之前的播放状态
     
-    // 立即更新界面显示
+    // 立即更新界面显示（文本切换立即发生）
     setState(prev => ({
       ...prev,
       podcastSession: prev.podcastSession ? {
         ...prev.podcastSession,
         currentIndex: newIndex,
-        currentAudio: null, // 先清空音频
+        currentAudio: null, // 清空音频，等待新音频加载
         isPlaying: false
       } : null
     }));
     
-    // 异步加载音频
-    try {
-      const response = await chrome.runtime.sendMessage({
-        type: MESSAGE_TYPES.GET_AUDIO,
-        data: {
-          sessionId: state.podcastSession.sessionId,
-          index: newIndex,
-          direction: 'previous' // 明确指定为上一条音频请求
-        }
-      });
-      
-      if (response.success && response.audioUrl) {
-        setState(prev => ({
-          ...prev,
-          podcastSession: prev.podcastSession ? {
-            ...prev.podcastSession,
-            currentAudio: response.audioUrl,
-            isPlaying: wasPlaying // 保持之前的播放状态
-          } : null
-        }));
-      } else if (!response.success && response.error === '音频正在生成中，请稍候') {
-        // 音频正在生成中，保持当前状态，等待AUDIO_READY消息
-        console.log('音频正在生成中，等待完成通知');
-      }
-    } catch (error) {
-      console.error('加载上一条音频失败:', error);
-    }
+    // 异步请求音频
+    await requestAudio(state.podcastSession.sessionId, newIndex);
   };
 
   /**
@@ -402,49 +401,22 @@ const Popup: React.FC = () => {
       return;
     }
     
-    const wasPlaying = state.podcastSession.isPlaying; // 记住之前的播放状态
-    
-    // 立即更新界面显示
+    // 立即更新界面显示（文本切换立即发生）
     setState(prev => ({
       ...prev,
       podcastSession: prev.podcastSession ? {
         ...prev.podcastSession,
         currentIndex: newIndex,
-        currentAudio: null, // 先清空音频
+        currentAudio: null, // 清空音频，等待新音频加载
         isPlaying: false
       } : null
     }));
     
-    // 异步加载音频
-    try {
-      const response = await chrome.runtime.sendMessage({
-        type: MESSAGE_TYPES.GET_AUDIO,
-        data: {
-          sessionId: state.podcastSession.sessionId,
-          index: newIndex,
-          direction: 'next' // 明确指定为下一条音频请求
-        }
-      });
-      
-      if (response.success && response.audioUrl) {
-        setState(prev => ({
-          ...prev,
-          podcastSession: prev.podcastSession ? {
-            ...prev.podcastSession,
-            currentAudio: response.audioUrl,
-            isPlaying: wasPlaying // 保持之前的播放状态
-          } : null
-        }));
-        
-        // 预加载下一条
-        await loadNextAudio();
-      } else if (!response.success && response.error === '音频正在生成中，请稍候') {
-        // 音频正在生成中，保持当前状态，等待AUDIO_READY消息
-        console.log('音频正在生成中，等待完成通知');
-      }
-    } catch (error) {
-      console.error('加载下一条音频失败:', error);
-    }
+    // 异步请求当前音频
+    await requestAudio(state.podcastSession.sessionId, newIndex);
+    
+    // 预加载下一条音频
+    await loadNextAudio();
   };
 
   /**
@@ -468,47 +440,22 @@ const Popup: React.FC = () => {
       return;
     }
     
-    // 立即更新界面显示，保持播放状态
+    // 立即更新界面显示，准备自动播放下一段
     setState(prev => ({
       ...prev,
       podcastSession: prev.podcastSession ? {
         ...prev.podcastSession,
         currentIndex: newIndex,
-        currentAudio: null, // 先清空音频
-        isPlaying: false
+        currentAudio: null, // 清空音频，等待新音频加载
+        isPlaying: true // 标记为自动播放状态
       } : null
     }));
     
-    // 异步加载音频
-    try {
-      const response = await chrome.runtime.sendMessage({
-        type: MESSAGE_TYPES.GET_AUDIO,
-        data: {
-          sessionId: state.podcastSession.sessionId,
-          index: newIndex,
-          direction: 'next' // 明确指定为下一条音频请求
-        }
-      });
-      
-      if (response.success && response.audioUrl) {
-        setState(prev => ({
-          ...prev,
-          podcastSession: prev.podcastSession ? {
-            ...prev.podcastSession,
-            currentAudio: response.audioUrl,
-            isPlaying: true // 自动播放下一段
-          } : null
-        }));
-        
-        // 预加载下一条
-        await loadNextAudio();
-      } else if (!response.success && response.error === '音频正在生成中，请稍候') {
-        // 音频正在生成中，保持当前状态，等待AUDIO_READY消息
-        console.log('音频正在生成中，等待完成通知');
-      }
-    } catch (error) {
-      console.error('加载下一条音频失败:', error);
-    }
+    // 异步请求当前音频
+    await requestAudio(state.podcastSession.sessionId, newIndex);
+    
+    // 预加载下一条音频
+    await loadNextAudio();
   };
 
   /**

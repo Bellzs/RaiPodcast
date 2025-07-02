@@ -84,6 +84,23 @@ export interface GeneratePodcastMessage extends ChromeMessage {
   };
 }
 
+// 音频状态枚举
+export enum AudioStatus {
+  NOT_REQUESTED = 'not_requested',    // 未请求
+  REQUESTING = 'requesting',          // 正在请求
+  GENERATION_ERROR = 'generation_error', // 生成错误
+  GENERATION_SUCCESS = 'generation_success' // 生成成功
+}
+
+// 音频状态信息
+export interface AudioStatusInfo {
+  status: AudioStatus;
+  audioUrl?: string;           // 音频URL（成功时）
+  requestId?: string;          // 请求ID（请求中时）
+  errorMessage?: string;       // 错误信息（错误时）
+  timestamp: number;           // 状态更新时间
+}
+
 // 音频请求和响应类型
 export interface AudioRequest {
   sessionId: string;
@@ -93,10 +110,11 @@ export interface AudioRequest {
 
 export interface AudioResponse {
   success: boolean;
-  audioUrl?: string;
+  audioUrl?: string | null; // 允许为null表示音频还未生成完成
   index?: number;
   totalCount?: number;
   error?: string;
+  message?: string; // 状态消息，如"音频正在生成中，请稍候"
 }
 
 export interface GetAudioMessage extends ChromeMessage {
