@@ -9,6 +9,8 @@ interface ModalData {
   content: string | JSX.Element;
   onConfirm?: () => void;
   confirmText?: string;
+  onCancel?: () => void;
+  cancelText?: string;
   showCancel?: boolean;
 }
 
@@ -48,7 +50,7 @@ const Options: React.FC = () => {
   /**
    * 显示成功弹窗
    */
-  const showSuccessModal = (title: string, content: string, onConfirm?: () => void): void => {
+  const showSuccessModal = (title: string, content: string, onConfirm?: () => void, showCancel: boolean = false): void => {
     setState(prev => ({
       ...prev,
       modal: {
@@ -57,7 +59,7 @@ const Options: React.FC = () => {
         content,
         onConfirm,
         confirmText: '确定',
-        showCancel: false
+        showCancel: showCancel
       }
     }));
   };
@@ -65,7 +67,7 @@ const Options: React.FC = () => {
   /**
    * 显示错误弹窗
    */
-  const showErrorModal = (title: string, content: string): void => {
+  const showErrorModal = (title: string, content: string, onConfirm?: () => void, showCancel: boolean = false): void => {
     setState(prev => ({
       ...prev,
       modal: {
@@ -73,7 +75,8 @@ const Options: React.FC = () => {
         title,
         content,
         confirmText: '确定',
-        showCancel: false
+        showCancel: showCancel,
+        onConfirm: onConfirm
       }
     }));
   };
@@ -81,7 +84,7 @@ const Options: React.FC = () => {
   /**
    * 显示测试连接弹窗
    */
-  const showTestConnectionModal = (modelName: string, response: string, onSave: () => void): void => {
+  const showTestConnectionModal = (modelName: string, response: string, onSave: () => void, onCancel?: () => void): void => {
     const content = (
       <div>
         <div className="test-result-item">
@@ -109,6 +112,8 @@ const Options: React.FC = () => {
         content,
         onConfirm: onSave,
         confirmText: '保存',
+        onCancel: onCancel,
+        cancelText: '取消',
         showCancel: true
       }
     }));
@@ -173,6 +178,50 @@ const Options: React.FC = () => {
   /**
    * 添加新的Agent配置
    */
+  /**
+   * 显示删除AI模型配置确认弹窗
+   */
+  const showDeleteAgentConfirmModal = (id: string): void => {
+    setState(prev => ({
+      ...prev,
+      modal: {
+        type: 'error',
+        title: '确认删除',
+        content: '确定要删除此AI模型配置吗？删除后将无法恢复。',
+        onConfirm: () => {
+          closeModal();
+          deleteAgentConfig(id);
+        },
+        confirmText: '删除',
+        onCancel: closeModal,
+        cancelText: '取消',
+        showCancel: true
+      }
+    }));
+  };
+
+  /**
+   * 显示删除TTS配置确认弹窗
+   */
+  const showDeleteTTSConfirmModal = (id: string): void => {
+    setState(prev => ({
+      ...prev,
+      modal: {
+        type: 'error',
+        title: '确认删除',
+        content: '确定要删除此音色配置吗？删除后将无法恢复。',
+        onConfirm: () => {
+          closeModal();
+          deleteTTSConfig(id);
+        },
+        confirmText: '删除',
+        onCancel: closeModal,
+        cancelText: '取消',
+        showCancel: true
+      }
+    }));
+  };
+
   const addAgentConfig = async (): Promise<void> => {
     try {
       const newConfig: AgentConfig = {
@@ -1030,7 +1079,7 @@ const Options: React.FC = () => {
                   </button>
                   <button 
                     className="btn btn-small btn-danger" 
-                    onClick={() => deleteAgentConfig(config.id)}
+                    onClick={() => showDeleteAgentConfirmModal(config.id)}
                     style={{ display: state.agentConfigs.length > 1 ? 'block' : 'none' }}
                   >
                     删除
@@ -1286,7 +1335,7 @@ const Options: React.FC = () => {
                     {state.ttsConfigs.length > 2 && (
                       <button 
                         className="btn btn-small btn-danger" 
-                        onClick={() => deleteTTSConfig(config.id)}
+                        onClick={() => showDeleteTTSConfirmModal(config.id)}
                         style={{ marginRight: '8px' }}
                       >
                         删除
