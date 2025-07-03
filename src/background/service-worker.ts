@@ -1,5 +1,5 @@
 import { ChromeMessage, ExtractContentMessage, GeneratePodcastMessage } from '@/shared/types';
-import { MESSAGE_TYPES } from '@/shared/constants';
+import { MESSAGE_TYPES,DEFAULT_AGENT_CONFIG } from '@/shared/constants';
 import { AudioRequest, AudioResponse, PodcastSession, AudioStatus, AudioStatusInfo } from '@/shared/types';
 
 /**
@@ -792,23 +792,17 @@ class ServiceWorker {
           text: '请为以下内容生成播客对话：\n\n标题：' + content.title + '\n\n内容：' + content.content
         }
       ];
+
+      const maxImageCount = agentConfig.maxImageCount || DEFAULT_AGENT_CONFIG.maxImageCount;
       
       // 添加图片 - 使用OpenAI格式
-      content.images.forEach((image: any, index: number) => {
+      content.images.slice(0, maxImageCount).forEach((image: any, index: number) => {
         userContent.push({
           type: 'image_url',
           image_url: {
             url: image.src
           }
         } as any);
-        
-        // 添加图片描述
-        if (image.alt) {
-          userContent.push({
-            type: 'text',
-            text: '图片 ' + (index + 1) + ' 描述：' + image.alt
-          });
-        }
       });
       
       messages.push({

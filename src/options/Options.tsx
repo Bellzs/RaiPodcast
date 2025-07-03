@@ -1103,7 +1103,7 @@ const Options: React.FC = () => {
                         <input
                           type="number"
                           className="form-input"
-                          value={config.maxImageCount || 10}
+                          value={config.maxImageCount || DEFAULT_AGENT_CONFIG.maxImageCount}
                           onChange={(e) => updateAgentConfig(config.id, 'maxImageCount', e.target.value)}
                           min="1"
                         />
