@@ -201,7 +201,7 @@ class ContentScript {
    */
   private isContentImage(img: HTMLImageElement): boolean {
     // 排除小尺寸图片（可能是图标、按钮等）
-    if (img.width < 50 || img.height < 50) {
+    if (img.width < 100 || img.height < 100) {
       return false;
     }
     
