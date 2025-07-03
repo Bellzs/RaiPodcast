@@ -345,42 +345,69 @@ body {
 
 /* 配置信息 */
 .config-info {
-  background: #f8f9fa;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 6px;
+  padding: 10px;
+  background-color: #f8f9fa;
+  border-radius: 8px;
   border: 1px solid #e9ecef;
-  border-radius: 6px;
-  padding: 6px;
-  margin: 3px 0 3px 0;
-  font-size: 13px;
 }
 
 .config-item {
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  margin-bottom: 4px;
-}
-
-.config-item:last-child {
-  margin-bottom: 0;
+  justify-content: space-between;
+  font-size: 14px;
 }
 
 .config-label {
-  font-weight: 500;
-  color: #495057;
+  font-weight: bold;
+  color: #343a40;
 }
 
 .config-value {
-  color: #6c757d;
-  text-align: right;
-  max-width: 60%;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  color: #495057;
+  background-color: #e9ecef;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  max-width: 180px; /* 限制宽度 */
+  white-space: nowrap; /* 不换行 */
+  overflow: hidden; /* 隐藏超出部分 */
+  text-overflow: ellipsis; /* 显示省略号 */
+}
+
+.config-select {
+  width: 180px; /* 保持与config-value相同的宽度 */
+  padding: 4px 8px;
+  border: 1px solid #ced4da;
+  border-radius: 4px;
+  background-color: #fff;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  font-size: 14px;
+  color: #495057;
+  appearance: none; /* 移除默认下拉箭头 */
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  background-image: url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%20256%20256%22%3E%3Cpath%20fill%3D%22%23495057%22%20d%3D%22M208.5%2096.5L128%20177l-80.5-80.5c-4.7-4.7-12.3-4.7-17%200s-4.7%2012.3%200%2017l88%2088c4.7%204.7%2012.3%204.7%2017%200l88-88c4.7-4.7%204.7-12.3%200-17s-12.3-4.7-17%200z%22%2F%3E%3C%2Fsvg%3E'); /* 自定义下拉箭头 */
+  background-repeat: no-repeat;
+  background-position: right 8px center;
+  background-size: 12px;
+  cursor: pointer;
+}
+
+.config-select:focus {
+  outline: none;
+  border-color: #80bdff;
+  box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
 }
 
 .image-support-badge {
-  margin-left: 4px;
-  font-size: 11px;
+  margin-left: 5px;
+  font-size: 12px;
+  color: #007bff;
 }
 
 /* 底部栏 */

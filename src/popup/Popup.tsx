@@ -32,6 +32,8 @@ interface PopupState {
   ttsError: string | null; // 专门用于TTS错误
   generating: boolean;
   currentAgent: AgentConfig | null;
+  allAgents: AgentConfig[]; // 新增：所有可用的AI模型
+  allTTSConfigs: TTSConfig[]; // 新增：所有可用的TTS配置
   currentVoices: { voiceA: TTSConfig | null; voiceB: TTSConfig | null };
   podcastSession: PodcastSession | null;
 }
@@ -45,6 +47,8 @@ const Popup: React.FC = () => {
     ttsError: null,
     generating: false,
     currentAgent: null,
+    allAgents: [], // 初始化为空数组
+    allTTSConfigs: [], // 初始化为空数组
     currentVoices: { voiceA: null, voiceB: null },
     podcastSession: null
   });
@@ -126,13 +130,15 @@ const Popup: React.FC = () => {
         throw new Error('无法获取当前标签页');
       }
 
-      // 并行获取页面内容、配置信息和当前会话状态
-      const [contentResponse, agentConfig, ttsConfigs, sessionResponse] = await Promise.all([
+      // 并行获取页面内容、配置信息、所有Agent配置和当前会话状态
+      const [contentResponse, agentConfig, allAgents, allTTSConfigs, ttsConfigs, sessionResponse] = await Promise.all([
         chrome.runtime.sendMessage({
           type: MESSAGE_TYPES.EXTRACT_CONTENT,
           data: { tabId: tab.id }
         }),
         StorageManager.getCurrentAgentConfig(),
+        StorageManager.getAgentConfigs(), // 获取所有Agent配置
+        StorageManager.getTTSConfigs(), // 获取所有TTS配置
         StorageManager.getCurrentTTSConfigs(),
         chrome.runtime.sendMessage({
           type: MESSAGE_TYPES.GET_CURRENT_SESSION
@@ -162,6 +168,8 @@ const Popup: React.FC = () => {
           ...prev,
           pageContent: contentResponse.data,
           currentAgent: agentConfig,
+          allAgents: allAgents, // 更新所有Agent配置
+          allTTSConfigs: allTTSConfigs, // 更新所有TTS配置
           currentVoices: ttsConfigs || { voiceA: null, voiceB: null },
           podcastSession: podcastSession,
           loading: false
@@ -493,6 +501,61 @@ const Popup: React.FC = () => {
   };
 
   /**
+   * 处理AI模型选择变化
+   */
+  const handleAgentChange = async (event: React.ChangeEvent<HTMLSelectElement>): Promise<void> => {
+    const selectedAgentId = event.target.value;
+    const selectedAgent = state.allAgents.find(agent => agent.id === selectedAgentId);
+
+    if (selectedAgent) {
+      setState(prev => ({
+        ...prev,
+        currentAgent: selectedAgent
+      }));
+      // 保存新的默认Agent ID到存储
+      const settings = await StorageManager.getAppSettings();
+      await StorageManager.saveAppSettings({ ...settings, defaultAgentId: selectedAgent.id });
+    } else if (selectedAgentId === '') {
+      // 处理“未配置”选项，即没有选择任何Agent
+      setState(prev => ({
+        ...prev,
+        currentAgent: null
+      }));
+      const settings = await StorageManager.getAppSettings();
+      await StorageManager.saveAppSettings({ ...settings, defaultAgentId: '' });
+    }
+  };
+
+  /**
+   * 处理音色选择变化
+   */
+  const handleVoiceChange = async (event: React.ChangeEvent<HTMLSelectElement>, role: 'A' | 'B'): Promise<void> => {
+    const selectedVoiceId = event.target.value;
+    const selectedVoice = state.allTTSConfigs.find(tts => tts.id === selectedVoiceId);
+
+    setState(prev => {
+      const newVoices = { ...prev.currentVoices };
+      if (role === 'A') {
+        newVoices.voiceA = selectedVoice || null;
+      } else {
+        newVoices.voiceB = selectedVoice || null;
+      }
+      return {
+        ...prev,
+        currentVoices: newVoices
+      };
+    });
+
+    // 保存新的默认TTS ID到存储
+    const settings = await StorageManager.getAppSettings();
+    if (role === 'A') {
+      await StorageManager.saveAppSettings({ ...settings, voiceAConfigId: selectedVoice?.id || '' });
+    } else {
+      await StorageManager.saveAppSettings({ ...settings, voiceBConfigId: selectedVoice?.id || '' });
+    }
+  };
+
+  /**
    * 渲染加载状态
    */
   const renderLoading = (): JSX.Element => (
@@ -658,24 +721,61 @@ const Popup: React.FC = () => {
       <div className="config-info">
         <div className="config-item">
           <span className="config-label">🤖 AI模型:</span>
-          <span className="config-value">
-            {state.currentAgent?.name || '未配置'}
-            {state.currentAgent?.supportsImages && (
-              <span className="image-support-badge">📷</span>
+          <select
+            className="config-select"
+            value={state.currentAgent?.id || ''}
+            onChange={handleAgentChange}
+            title="选择AI模型"
+          >
+            {state.allAgents.length === 0 ? (
+              <option value="">未配置</option>
+            ) : (
+              state.allAgents.map(agent => (
+                <option key={agent.id} value={agent.id}>
+                  {agent.supportsImages && '📷 '}
+                  {agent.name}
+                </option>
+              ))
             )}
-          </span>
+          </select>
         </div>
         <div className="config-item">
           <span className="config-label">🎵 角色A:</span>
-          <span className="config-value">
-            {state.currentVoices.voiceA?.name || '未配置'}
-          </span>
+          <select
+            className="config-select"
+            value={state.currentVoices.voiceA?.id || ''}
+            onChange={(e) => handleVoiceChange(e, 'A')}
+            title="选择角色A音色"
+          >
+            {state.allTTSConfigs.length === 0 ? (
+              <option value="">未配置</option>
+            ) : (
+              state.allTTSConfigs.map(tts => (
+                <option key={tts.id} value={tts.id}>
+                  {tts.name}
+                </option>
+              ))
+            )}
+          </select>
         </div>
         <div className="config-item">
           <span className="config-label">🎵 角色B:</span>
-          <span className="config-value">
-            {state.currentVoices.voiceB?.name || '未配置'}
-          </span>
+          <select
+            className="config-select"
+            value={state.currentVoices.voiceB?.id || ''}
+            onChange={(e) => handleVoiceChange(e, 'B')}
+            title="选择角色B音色"
+          >
+            {state.allTTSConfigs.length === 0 ? (
+              <option value="">未配置</option>
+            ) : (
+              state.allTTSConfigs.map(tts => (
+                <option key={tts.id} value={tts.id}>
+                  {tts.name}
+                </option>
+              ))
+            )}
+          </select>
         </div>
       </div>
     );
