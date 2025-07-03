@@ -1097,6 +1097,18 @@ const Options: React.FC = () => {
                       />
                       支持图片理解（多模态）
                     </label>
+                    {config.supportsImages && (
+                      <div className="form-item" style={{ marginTop: '10px' }}>
+                        <label className="form-label">最大图片数量：</label>
+                        <input
+                          type="number"
+                          className="form-input"
+                          value={config.maxImageCount || 10}
+                          onChange={(e) => updateAgentConfig(config.id, 'maxImageCount', e.target.value)}
+                          min="1"
+                        />
+                      </div>
+                    )}
                     <p style={{ fontSize: '12px', color: '#666', margin: '4px 0 0 0' }}>
                       启用后将在生成播客时同时发送网页中的图片内容
                     </p>

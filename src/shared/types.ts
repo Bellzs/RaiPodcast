@@ -22,6 +22,7 @@ export interface AgentConfig {
   model: string;
   systemPrompt: string;
   supportsImages: boolean;
+  maxImageCount?: number;
 }
 
 export interface TTSConfig {

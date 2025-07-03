@@ -29,7 +29,8 @@ export const DEFAULT_AGENT_CONFIG: AgentConfig = {
   apiKey: '',
   model: '',
   systemPrompt: '你是播客栏目的专家，负责编写播客的对话内容，需要将用户提交的文章内容转换为生动有趣的双人对话。\n角色A是主持人，角色B是嘉宾。\n对话要自然流畅，有问有答，能够帮助听众更好地理解文章内容，开场白里不用涉及角色的名字等未知信息。\n请直接返回Json数组格式，以[开头，]结尾，不得以其它字符开头结尾。\n数组中是两个角色依次的对话内容，示例：[{"user":"A","content":"哈喽，各位听众朋友们，大家好..."},"user":"B","content":"是的，这个话题非常有意思..."},"user":"A","content":"你怎么看待这个问题呢..."}]。',
-  supportsImages: false
+  supportsImages: false,
+  maxImageCount: 10
 };
 
 export const DEFAULT_TTS_CONFIG = {

@@ -684,6 +684,49 @@ const Popup: React.FC = () => {
   /**
    * 渲染页面信息
    */
+  /**
+   * 移除图片
+   */
+  const removeImage = (indexToRemove: number): void => {
+    setState(prev => {
+      if (!prev.pageContent || !prev.pageContent.images) return prev;
+      const updatedImages = prev.pageContent.images.filter((_, index) => index !== indexToRemove);
+      return {
+        ...prev,
+        pageContent: {
+          ...prev.pageContent,
+          images: updatedImages
+        }
+      };
+    });
+  };
+
+  /**
+   * 添加图片
+   */
+  const addImage = (): void => {
+    const imageUrl = prompt('请输入图片链接：');
+    if (imageUrl) {
+      // 这里需要调用content-script中的isValidImageUrl函数进行验证
+      // 暂时先简单判断，后续考虑通过消息传递调用content-script中的函数
+      if (imageUrl.startsWith('http://') || imageUrl.startsWith('https://')) {
+        setState(prev => {
+          if (!prev.pageContent) return prev;
+          const newImage = { src: imageUrl, alt: '' };
+          return {
+            ...prev,
+            pageContent: {
+              ...prev.pageContent,
+              images: [...(prev.pageContent.images || []), newImage]
+            }
+          };
+        });
+      } else {
+        alert('请输入有效的图片链接（以http://或https://开头）');
+      }
+    }
+  };
+
   const renderPageInfo = (): JSX.Element => {
     if (!state.pageContent) return <></>;
 
@@ -707,7 +750,14 @@ const Popup: React.FC = () => {
         </div>
         {state.pageContent.images && state.pageContent.images.length > 0 && (
           <div className="images-section">
-            <h4 className="images-title">页面图片 ({state.pageContent.images.length})</h4>
+            <h4 className="images-title">页面图片 ({state.pageContent.images.length})
+            </h4>
+            {state.currentAgent?.supportsImages &&
+               state.pageContent.images.length > (state.currentAgent?.maxImageCount || 10) && (
+                <span style={{ fontSize: '12px', color: '#ff4d4f', marginLeft: '10px' }}>
+                  超过图片理解上限{state.currentAgent?.maxImageCount || 10}，可手动删除或自动取前{state.currentAgent?.maxImageCount || 10}
+                </span>
+              )}
             <div className="images-list">
               {state.pageContent.images.map((image, index) => (
                 <div key={index} className="image-item">
@@ -721,8 +771,17 @@ const Popup: React.FC = () => {
                     }}
                   />
                   <span className="image-alt">{image.alt || `图片 ${index + 1}`}</span>
+                  <button 
+                    className="delete-image-btn"
+                    onClick={() => removeImage(index)}
+                  >
+                    x
+                  </button>
                 </div>
               ))}
+              <div className="add-image-item">
+                <button className="add-image-btn" onClick={addImage}>+</button>
+              </div>
             </div>
           </div>
         )}

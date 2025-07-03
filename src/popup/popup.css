@@ -575,12 +575,54 @@ body {
 .image-alt {
   font-size: 10px;
   color: #666;
-  margin-top: 4px;
-  line-height: 1.2;
-  max-width: 80px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+}
+
+.delete-image-btn {
+  position: absolute;
+  top: -5px;
+  right: -5px;
+  background-color: #ff4d4f;
+  color: white;
+  border: none;
+  border-radius: 50%;
+  width: 20px;
+  height: 20px;
+  font-size: 12px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  cursor: pointer;
+  z-index: 10;
+  opacity: 0;
+  transition: opacity 0.2s ease-in-out;
+}
+
+.image-item:hover .delete-image-btn {
+  opacity: 1;
+}
+
+.add-image-item {
+  width: 60px;
+  height: 60px;
+  border: 1px dashed #ccc;
+  border-radius: 4px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  cursor: pointer;
+  transition: border-color 0.2s ease-in-out;
+}
+
+.add-image-item:hover {
+  border-color: #007bff;
+}
+
+.add-image-btn {
+  background: none;
+  border: none;
+  font-size: 30px;
+  color: #007bff;
+  cursor: pointer;
 }
 
 /* 支持区域样式 */
