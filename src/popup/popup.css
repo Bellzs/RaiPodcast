@@ -122,8 +122,6 @@ body {
 .page-info {
   background: #f8f9fa;
   border-radius: 8px;
-  /* padding: 12px; */
-  margin-bottom: 16px;
   margin-bottom: 2px;
   border: 1px solid #28a745;
 }
@@ -244,14 +242,38 @@ body {
   margin-bottom: 8px;
 }
 
-.page-content {
-  font-size: 14px;
-  color: #555;
-  line-height: 1.5;
-  background: #ecf3fa;
-  padding: 8px;
-  border-radius: 6px;
-  border: 1px solid #e9ecef;
+.page-content-textarea {
+  width: 100%; /* 减去padding */
+  min-height: 80px; /* 最小高度 */
+  max-height: 150px; /* 最大高度 */
+  resize: vertical; /* 允许垂直方向调整大小 */
+  border: 1px solid #ced4da;
+  border-radius: 4px;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  font-size: 13px;
+  line-height: 1.6;
+  color: #343a40;
+  background-color: #fff;
+  overflow-y: auto; /* 垂直滚动 */
+}
+
+/* 自定义滚动条样式 */
+.page-content-textarea::-webkit-scrollbar {
+  width: 8px;
+}
+
+.page-content-textarea::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 10px;
+}
+
+.page-content-textarea::-webkit-scrollbar-thumb {
+  background: #888;
+  border-radius: 10px;
+}
+
+.page-content-textarea::-webkit-scrollbar-thumb:hover {
+  background: #555;
 }
 
 .copy-btn {

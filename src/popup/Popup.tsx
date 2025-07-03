@@ -501,6 +501,17 @@ const Popup: React.FC = () => {
   };
 
   /**
+   * 处理页面内容输入框变化
+   */
+  const handleContentChange = (event: React.ChangeEvent<HTMLTextAreaElement>): void => {
+    const newContent = event.target.value;
+    setState(prev => ({
+      ...prev,
+      pageContent: prev.pageContent ? { ...prev.pageContent, content: newContent } : null
+    }));
+  };
+
+  /**
    * 处理AI模型选择变化
    */
   const handleAgentChange = async (event: React.ChangeEvent<HTMLSelectElement>): Promise<void> => {
@@ -842,12 +853,12 @@ const Popup: React.FC = () => {
             📄
           </button>
         </div>
-        <div className="page-content">
-          {state.pageContent.content.length > 150 
-            ? `${state.pageContent.content.substring(0, 150)}...` 
-            : state.pageContent.content
-          }
-        </div>
+        <textarea
+          className="page-content-textarea"
+          value={state.pageContent.content}
+          onChange={handleContentChange}
+          placeholder="页面内容"
+        />
         <div className="images-section">
             <h4 className="images-title">页面图片 ({state.pageContent.images.length})
             </h4>

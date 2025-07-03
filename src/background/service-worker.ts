@@ -654,7 +654,7 @@ class ServiceWorker {
       
       console.log('配置验证通过，开始生成播客对话...');
       console.log('内容标题:', content.title);
-      console.log('内容长度:', content.content.length);
+      console.log('内容正文:', content.content);
       console.log('图片数量:', content.images?.length || 0);
       console.log('使用模型:', agentConfig.model);
       console.log('支持图片:', agentConfig.supportsImages);
