@@ -748,8 +748,7 @@ const Popup: React.FC = () => {
             : state.pageContent.content
           }
         </div>
-        {state.pageContent.images && state.pageContent.images.length > 0 && (
-          <div className="images-section">
+        <div className="images-section">
             <h4 className="images-title">页面图片 ({state.pageContent.images.length})
             </h4>
             {state.currentAgent?.supportsImages &&
@@ -784,7 +783,6 @@ const Popup: React.FC = () => {
               </div>
             </div>
           </div>
-        )}
       </div>
     );
   };
