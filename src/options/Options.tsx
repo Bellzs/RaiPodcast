@@ -200,6 +200,41 @@ const Options: React.FC = () => {
   };
 
   /**
+   * 复制Agent配置
+   */
+  const copyAgentConfig = async (id: string): Promise<void> => {
+    try {
+      const configToCopy = state.agentConfigs.find(config => config.id === id);
+      if (!configToCopy) {
+        showErrorModal('复制失败', '未找到要复制的AI模型配置。');
+        return;
+      }
+
+      const newConfig: AgentConfig = {
+        ...configToCopy,
+        id: `agent_${Date.now()}`,
+        name: `${configToCopy.name}—副本`
+      };
+
+      const updatedConfigs = [...state.agentConfigs, newConfig];
+
+      // 持久化到本地存储
+      await StorageManager.saveAgentConfigs(updatedConfigs);
+
+      setState(prev => ({
+        ...prev,
+        agentConfigs: updatedConfigs,
+        editingAgent: newConfig
+      }));
+
+      showSuccessModal('复制成功', `AI模型配置“${newConfig.name}”已成功复制。`);
+    } catch (error) {
+      console.error('复制Agent配置失败:', error);
+      showErrorModal('复制失败', '复制AI模型配置时发生错误，请重试。');
+    }
+  };
+
+  /**
    * 删除Agent配置
    */
   const deleteAgentConfig = async (id: string): Promise<void> => {
@@ -977,34 +1012,36 @@ const Options: React.FC = () => {
                     <span style={{ marginLeft: '8px', fontSize: '12px', color: '#52c41a', backgroundColor: '#f6ffed', padding: '2px 6px', borderRadius: '4px', border: '1px solid #b7eb8f' }}>📷 支持图片</span>
                   )}
                 </h3>
-                <div>
+                <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
                   <button 
                     className="btn btn-small" 
-                    onClick={() => setState(prev => ({ 
+                    onClick={() => setState(prev => ({
                       ...prev, 
                       editingAgent: prev.editingAgent?.id === config.id ? null : config 
                     }))}
-                    style={{ marginRight: '8px' }}
                   >
                     {state.editingAgent?.id === config.id ? '收起' : '展开'}
                   </button>
-                  {state.agentConfigs.length > 1 && (
-                    <button 
-                      className="btn btn-small btn-danger" 
-                      onClick={() => deleteAgentConfig(config.id)}
-                      style={{ marginRight: '8px' }}
-                    >
-                      删除
-                    </button>
-                  )}
-                  {state.settings.defaultAgentId !== config.id && (
-                    <button 
-                      className="btn btn-small btn-primary" 
-                      onClick={() => applyAgentConfig(config.id)}
-                    >
-                      设为默认
-                    </button>
-                  )}
+                  <button 
+                    className="btn btn-small btn-info" 
+                    onClick={() => copyAgentConfig(config.id)}
+                  >
+                    复制
+                  </button>
+                  <button 
+                    className="btn btn-small btn-danger" 
+                    onClick={() => deleteAgentConfig(config.id)}
+                    style={{ display: state.agentConfigs.length > 1 ? 'block' : 'none' }}
+                  >
+                    删除
+                  </button>
+                  <button 
+                    className="btn btn-small btn-primary" 
+                    onClick={() => applyAgentConfig(config.id)}
+                    style={{ display: state.settings.defaultAgentId !== config.id ? 'block' : 'none' }}
+                  >
+                    设为默认
+                  </button>
                 </div>
               </div>
               
