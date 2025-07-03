@@ -881,7 +881,11 @@ const Options: React.FC = () => {
                 settings: configData.settings,
                 modal: null
               }));
-              showSuccessModal('导入成功', '配置已成功导入，请记得保存配置。');
+              // 直接保存配置
+              StorageManager.saveAgentConfigs(configData.agentConfigs);
+              StorageManager.saveTTSConfigs(configData.ttsConfigs);
+              StorageManager.saveAppSettings(configData.settings);
+              showSuccessModal('导入成功', '配置已成功导入并保存。');
             },
             confirmText: '确认导入',
             showCancel: true
