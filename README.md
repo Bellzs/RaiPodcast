@@ -82,7 +82,7 @@ RaiPodcast 是一款创新的浏览器（Chromium内核）扩展，能够智能�
 3. **启动开发模式**
    
    ```bash
-   # 编译代码生成dist文件夹
+   # 构建代码生成dist文件夹
    npm run build
    
    # 或启动开发模式（文件变化时自动重新构建）

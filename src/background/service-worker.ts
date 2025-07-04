@@ -899,6 +899,16 @@ class ServiceWorker {
     else if (data.response) {
       content = data.response;
     }
+
+    // 检查返回内容是否以```json开头
+    if (content.trim().startsWith('```json')) {
+      content = content.replace(/^```json\n/, '');
+    }
+    
+    // 检查返回内容是否以```结尾
+    if (content.trim().endsWith('```')) {
+      content = content.replace(/```$/, '');
+    }
     
     if (!content) {
       console.warn('API响应数据:', JSON.stringify(data, null, 2));

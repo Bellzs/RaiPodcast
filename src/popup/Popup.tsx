@@ -860,7 +860,7 @@ const Popup: React.FC = () => {
           placeholder="页面内容"
         />
         <div className="images-section">
-            <h4 className="images-title">页面图片 ({state.pageContent.images.length})
+            <h4 className="images-title">页面图片 ({state.pageContent.images.length == 0 ? '未识别到图片，可手动添加' : state.pageContent.images.length}) 
             </h4>
             {state.currentAgent?.supportsImages &&
                state.pageContent.images.length > (state.currentAgent?.maxImageCount || 10) && (
@@ -1106,7 +1106,7 @@ const Popup: React.FC = () => {
               <span>第 {currentIndex + 1} / {totalDialogues} 段</span>
             </div>
             <div style={{
-              fontSize: '14px',
+              fontSize: '16px',
               lineHeight: '1.4',
               color: '#333'
             }}>
