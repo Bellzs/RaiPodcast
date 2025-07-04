@@ -739,7 +739,7 @@ const Popup: React.FC = () => {
             title="选择AI模型"
           >
             {state.allAgents.length === 0 ? (
-              <option value="">未配置</option>
+              <option value="">未配置（点击右下角设置）</option>
             ) : (
               state.allAgents.map(agent => (
                 <option key={agent.id} value={agent.id}>
@@ -759,7 +759,7 @@ const Popup: React.FC = () => {
             title="选择角色A音色"
           >
             {state.allTTSConfigs.length === 0 ? (
-              <option value="">未配置</option>
+              <option value="">未配置（点击右下角设置）</option>
             ) : (
               state.allTTSConfigs.map(tts => (
                 <option key={tts.id} value={tts.id}>
@@ -778,7 +778,7 @@ const Popup: React.FC = () => {
             title="选择角色B音色"
           >
             {state.allTTSConfigs.length === 0 ? (
-              <option value="">未配置</option>
+              <option value="">未配置（点击右下角设置）</option>
             ) : (
               state.allTTSConfigs.map(tts => (
                 <option key={tts.id} value={tts.id}>
