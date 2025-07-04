@@ -57,7 +57,7 @@ export class StorageManager {
    */
   static async getTTSConfigs(): Promise<TTSConfig[]> {
     const result = await chrome.storage.local.get(STORAGE_KEYS.TTS_CONFIGS);
-    return result[STORAGE_KEYS.TTS_CONFIGS] || [DEFAULT_VOICE_A_CONFIG, DEFAULT_VOICE_B_CONFIG];
+    return result[STORAGE_KEYS.TTS_CONFIGS] || [];
   }
 
   /**

@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "RaiPodcast - AI播客生成器",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "将网页内容转换为AI播客对话的Chrome扩展",
   "permissions": [
     "storage",
