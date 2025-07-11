@@ -457,9 +457,9 @@ body {
 }
 
 .version-info {
-  font-size: 11px;
+  /* font-size: 11px; */
   color: #666;
-  font-weight: 500;
+  /* font-weight: 500; */
 }
 
 /* 播客播放器样式 */

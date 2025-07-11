@@ -181,13 +181,29 @@ class ContentScript {
     imgElements.forEach(img => {
       // 过滤掉不相关的图片
       if (this.isContentImage(img)) {
-        const src = img.src || img.getAttribute('data-src') || img.getAttribute('data-lazy-src');
-        if (src && this.isValidImageUrl(src)) {
+        // 优先提取 data-src（如微信文章图片），其次 data-lazy-src，再次 src
+        const src = img.getAttribute('data-src') || img.getAttribute('data-lazy-src') || img.src;
+        if (src && this.isValidImageUrl(src, img)) {
+          // 优先用 data-w 和 data-ratio 计算宽高
+          let width: number | undefined = undefined;
+          let height: number | undefined = undefined;
+          const dataW = img.getAttribute('data-w');
+          const dataRatio = img.getAttribute('data-ratio');
+          if (dataW && dataRatio) {
+            width = parseInt(dataW, 10);
+            const ratio = parseFloat(dataRatio);
+            if (!isNaN(width) && !isNaN(ratio) && ratio > 0) {
+              height = Math.round(width * ratio);
+            }
+          } else {
+            width = img.naturalWidth || undefined;
+            height = img.naturalHeight || undefined;
+          }
           images.push({
             src: this.normalizeImageUrl(src),
             alt: img.alt || '',
-            width: img.naturalWidth || undefined,
-            height: img.naturalHeight || undefined
+            width,
+            height
           });
         }
       }
@@ -239,20 +255,30 @@ class ContentScript {
   /**
    * 验证图片URL是否有效
    */
-  private isValidImageUrl(url: string): boolean {
+  private isValidImageUrl(url: string, img?: HTMLImageElement): boolean {
     // 排除base64图片（通常是小图标）
     if (url.startsWith('data:')) {
       return false;
     }
-    
+    // 微信文章图片特殊处理：允许 mmbiz.qpic.cn/sz_mmbiz_jpg/
+    if (/mmbiz\.qpic\.cn\/sz_mmbiz_\w+\//.test(url)) {
+      return true;
+    }
     // 检查是否为图片格式
     const imageExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.svg'];
     const urlLower = url.toLowerCase();
-    
-    return imageExtensions.some(ext => 
-      urlLower.includes(ext) || 
-      urlLower.match(new RegExp(`\\${ext}(\\?|$)`))
-    ) || url.includes('image') || url.includes('img');
+    if (imageExtensions.some(ext => urlLower.includes(ext) || urlLower.match(new RegExp(`\\${ext}(\\?|$)`)))) {
+      return true;
+    }
+    // 允许带有 image/img 关键词的 url
+    if (url.includes('image') || url.includes('img')) {
+      return true;
+    }
+    // 兼容微信文章图片的 data-type 属性
+    if (img && img.getAttribute('data-type')) {
+      return true;
+    }
+    return false;
   }
   
   /**

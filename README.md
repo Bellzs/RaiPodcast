@@ -1,4 +1,4 @@
-# RaiPodcast - AI播客生成器
+# RaiPodcast - AI播客生成器(Powered By [www.joyai.me](https://www.joyai.me))
 
 <div align="center">
   <img src="RaiPod.png" alt="RaiPodcast Logo" width="128" height="128">

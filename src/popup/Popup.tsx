@@ -1143,8 +1143,19 @@ const Popup: React.FC = () => {
       </div>
 
       {/* 底部栏 */}
-      <div className="popup-footer">
-        <span className="version-info">v{packageJson.version}</span>
+      <div className="popup-footer" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div style={{ display: 'flex', alignItems: 'center' }}>
+          <a
+            href="https://www.joyai.me"
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{ textDecoration: 'none', fontSize: '13px', marginRight: '8px', color: 'inherit', fontWeight: 'normal' }}
+          >
+            <span className="version-info">v{packageJson.version}</span>
+            <span style={{ margin: '0 4px', color: '#ccc' }}>|</span>
+            Powered By <span style={{ color: '#1677ff', textDecoration: 'none', fontSize: '15px'}}>www.joyai.me</span>
+          </a>
+        </div>
         <a
           href="#"
           className="settings-link"
